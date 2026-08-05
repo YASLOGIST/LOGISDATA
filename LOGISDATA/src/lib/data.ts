@@ -1,0 +1,312 @@
+import type {
+  AuditMetric,
+  DemandTier,
+  FreightAuditRow,
+  LocalizedText,
+  PresentationCopy,
+  RouteRegion,
+  SupplyNode,
+  WarehouseBin,
+  WarehouseSpec,
+} from "./types";
+
+export const presentationCopy: PresentationCopy = {
+  nav: {
+    eyebrow: { en: "AAST // SUPPLY CHAIN CONTROL ROOM", ar: "AAST // غرفة التحكم في سلسلة الإمداد" },
+    sections: [
+      { en: "Hidden cost", ar: "التكلفة الخفية" },
+      { en: "Invoice audit", ar: "تدقيق الفواتير" },
+      { en: "Bullwhip audit", ar: "تدقيق التضخيم" },
+      { en: "Route intelligence", ar: "ذكاء المسارات" },
+      { en: "Warehouse control", ar: "رقابة المستودع" },
+    ],
+    theme: { en: "Theme", ar: "المظهر" },
+    language: { en: "Language", ar: "اللغة" },
+    scrollHint: { en: "Scroll to audit the system", ar: "مرر لتدقيق النظام" },
+  },
+  hero: {
+    eyebrow: { en: "EXECUTIVE BRIEFING // 2025 CONTROL MODEL", ar: "إحاطة تنفيذية // نموذج الرقابة ٢٠٢٥" },
+    title: {
+      en: "Data leakage in supply chains: the invisible profit killer",
+      ar: "تسرب البيانات في سلاسل الإمداد: قاتل الأرباح غير المرئي",
+    },
+    subhead: {
+      en: "A visual audit of the signals that turn freight, inventory and fleet data into measurable operating leverage.",
+      ar: "تدقيق بصري للإشارات التي تحول بيانات الشحن والمخزون والأسطول إلى رافعة تشغيلية قابلة للقياس.",
+    },
+    byline: { en: "Prepared for AAST leadership", ar: "مُعد لقيادة الأكاديمية العربية" },
+    presenter: "Ahmed Yasser Ali",
+    registration: "211010269",
+    date: { en: "Executive presentation · 06 February 2025", ar: "عرض تنفيذي · ٦ فبراير ٢٠٢٥" },
+    modelNote: {
+      en: "Illustrative, placeholder-realistic figures for executive presentation",
+      ar: "أرقام توضيحية واقعية افتراضيًا للعرض التنفيذي",
+    },
+    networkLabel: { en: "UNVERIFIED SIGNAL NETWORK", ar: "شبكة الإشارات غير الموثقة" },
+    metricSource: { en: "Modelled control-room baseline", ar: "خط أساس نمذجي لغرفة التحكم" },
+    logoSpace: { en: "LOGO SPACE", ar: "مساحة الشعار" },
+    controlLabel: { en: "CONTROL / 01", ar: "رقابة / ٠١" },
+    labLabel: { en: "AAST / EXECUTIVE DATA LAB", ar: "AAST / مختبر البيانات التنفيذي" },
+    verifiedLabel: { en: "verified", ar: "موثق" },
+  },
+  audit: {
+    eyebrow: { en: "02 / FREIGHT + BILLING CONTROL", ar: "٠٢ / رقابة الشحن والفوترة" },
+    title: {
+      en: "Every invoice is a claim. Audit it like one.",
+      ar: "كل فاتورة مطالبة. دققها بهذه العقلية.",
+    },
+    description: {
+      en: "Reconcile contracted distance, telematics mileage and duplicate billing before leakage reaches the P&L.",
+      ar: "طابق المسافة المتعاقد عليها مع بيانات التليماتكس والفوترة المكررة قبل وصول التسرب إلى قائمة الأرباح والخسائر.",
+    },
+    tableHeaders: {
+      freight: { en: "Freight type", ar: "نوع الشحنة" },
+      billed: { en: "Billed km", ar: "الكيلومترات المفوترة" },
+      actual: { en: "Actual km", ar: "الكيلومترات الفعلية" },
+      duplicate: { en: "Duplicate flag", ar: "مؤشر التكرار" },
+      overcharge: { en: "Rate overcharge", ar: "زيادة السعر" },
+      verdict: { en: "Audit verdict", ar: "نتيجة التدقيق" },
+    },
+    redFlag: { en: "Red flag", ar: "إشارة حمراء" },
+    passed: { en: "Passed audit", ar: "اجتاز التدقيق" },
+    scannerLabel: { en: "LASER AUDIT GATE", ar: "بوابة التدقيق بالليزر" },
+    scannerSubLabel: { en: "reconciling telemetry → contract", ar: "مطابقة التليماتكس ← العقد" },
+    verified: { en: "VERIFIED", ar: "موثق" },
+    warning: { en: "REVIEW", ar: "مراجعة" },
+  },
+  demand: {
+    eyebrow: { en: "03 / DEMAND SIGNAL CONTROL", ar: "٠٣ / رقابة إشارة الطلب" },
+    title: {
+      en: "Flatten the bullwhip before it becomes inventory.",
+      ar: "أوقف تضخيم الطلب قبل أن يتحول إلى مخزون.",
+    },
+    description: {
+      en: "One consumer signal becomes four different operating truths. Audit the amplification, then fund the demand you can defend.",
+      ar: "تتحول إشارة مستهلك واحدة إلى أربع حقائق تشغيلية مختلفة. دقق التضخيم ثم موّل الطلب الذي يمكنك الدفاع عنه.",
+    },
+    chartActual: { en: "Consumer demand", ar: "طلب المستهلك" },
+    chartDistorted: { en: "Un-audited signal", ar: "إشارة غير مدققة" },
+    chartAudited: { en: "Audited signal", ar: "إشارة مدققة" },
+    dragTitle: { en: "Bullwhip financial drag", ar: "الأثر المالي لتضخيم الطلب" },
+    dragValue: { en: "$18.7M annual carrying cost", ar: "١٨٫٧ مليون دولار تكلفة حمل سنوية" },
+    stockTitle: { en: "Safety stock over-allocation", ar: "تخصيص زائد للمخزون الآمن" },
+    stockValue: { en: "31% above service need", ar: "٣١٪ فوق احتياج الخدمة" },
+    smoothingLabel: { en: "signal smoothing", ar: "تسوية الإشارة" },
+  },
+  routes: {
+    eyebrow: { en: "04 / FLEET + TELEMATICS CONTROL", ar: "٠٤ / رقابة الأسطول والتليماتكس" },
+    title: {
+      en: "Turn every detour into a decision.",
+      ar: "حوّل كل انحراف إلى قرار.",
+    },
+    description: {
+      en: "GPS deviation, idle time and fuel loss expose route waste that a static TMS report cannot see.",
+      ar: "يكشف انحراف GPS ووقت التوقف وفقد الوقود هدر المسارات الذي لا يراه تقرير نظام إدارة النقل الثابت.",
+    },
+    headers: {
+      region: { en: "Fleet region", ar: "منطقة الأسطول" },
+      waste: { en: "Mileage waste", ar: "هدر المسافة" },
+      fuel: { en: "Fuel loss", ar: "فقد الوقود" },
+      gps: { en: "GPS deviation", ar: "انحراف GPS" },
+      savings: { en: "Optimized savings", ar: "التوفير المحسن" },
+    },
+    optimized: { en: "Optimized route", ar: "مسار محسن" },
+    detour: { en: "Unverified detour", ar: "انحراف غير موثق" },
+    terrainLabel: { en: "LIVE ROUTE TERRAIN", ar: "تضاريس المسار الحية" },
+  },
+  warehouse: {
+    eyebrow: { en: "05 / WAREHOUSE + INVENTORY CONTROL", ar: "٠٥ / رقابة المستودع والمخزون" },
+    title: {
+      en: "Make every shelf accountable.",
+      ar: "اجعل كل رف قابلًا للمساءلة.",
+    },
+    description: {
+      en: "A live inventory audit turns rack-level variance into a prioritized action list for operations, finance and loss prevention.",
+      ar: "يحول تدقيق المخزون المباشر الفروقات على مستوى الرف إلى قائمة إجراءات مرتبة للعمليات والمالية ومنع الخسائر.",
+    },
+    headers: {
+      impact: { en: "Operational impact", ar: "الأثر التشغيلي" },
+      cause: { en: "Cause analysis", ar: "تحليل السبب" },
+      fix: { en: "Audit fix", ar: "إصلاح التدقيق" },
+    },
+    mismatch: { en: "Mismatch", ar: "عدم تطابق" },
+    audited: { en: "Audited", ar: "مدقق" },
+    scanLabel: { en: "REAL-TIME SCAN", ar: "مسح لحظي" },
+    callout: { en: "shelf variance detected", ar: "تم اكتشاف فرق على الرف" },
+  },
+  footer: {
+    statement: {
+      en: "Control the signal. Protect the margin.",
+      ar: "اضبط الإشارة. احمِ الهامش.",
+    },
+    prompt: {
+      en: "The next decision is not more data. It is a defensible control loop.",
+      ar: "القرار التالي ليس المزيد من البيانات، بل حلقة رقابة يمكن الدفاع عنها.",
+    },
+    illustrative: {
+      en: "All figures are illustrative, placeholder-realistic assumptions for executive storytelling — validate against your ERP, TMS, WMS and telematics sources before investment decisions.",
+      ar: "جميع الأرقام افتراضات توضيحية واقعية افتراضيًا للسرد التنفيذي — يرجى التحقق منها مقابل مصادر ERP وTMS وWMS والتليماتكس قبل قرارات الاستثمار.",
+    },
+  },
+};
+
+export const auditMetrics: AuditMetric[] = [
+  {
+    id: "global-waste",
+    value: 2.1,
+    prefix: "$",
+    suffix: "T",
+    decimals: 1,
+    label: { en: "Global annual supply chain waste", ar: "الهدر السنوي العالمي في سلاسل الإمداد" },
+    note: { en: "avoidable value at network scale", ar: "قيمة قابلة للتجنب على مستوى الشبكة" },
+    tone: "amber",
+  },
+  {
+    id: "invoice-discrepancy",
+    value: 3.8,
+    prefix: "",
+    suffix: "%",
+    decimals: 1,
+    label: { en: "Average invoice discrepancy", ar: "متوسط فروقات الفواتير" },
+    note: { en: "freight and accessorial sample", ar: "عينة الشحن والتكاليف الإضافية" },
+    tone: "red",
+  },
+  {
+    id: "audit-roi",
+    value: 6.4,
+    prefix: "",
+    suffix: "x",
+    decimals: 1,
+    label: { en: "Real-time audit ROI", ar: "عائد التدقيق اللحظي" },
+    note: { en: "first-year value recovered / cost", ar: "القيمة المستردة في السنة الأولى / التكلفة" },
+    tone: "emerald",
+  },
+];
+
+export const freightAuditRows: FreightAuditRow[] = [
+  { id: "ocean-feeder", freightType: { en: "Ocean feeder", ar: "ناقلة بحرية مغذية" }, billedMileage: 1160, actualMileage: 1098, duplicateBillingPct: 2.8, overchargePct: 4.6, verdict: "red-flag" },
+  { id: "linehaul", freightType: { en: "Regional linehaul", ar: "نقل بري إقليمي" }, billedMileage: 842, actualMileage: 836, duplicateBillingPct: 0.0, overchargePct: 0.7, verdict: "passed" },
+  { id: "cold-chain", freightType: { en: "Cold-chain parcel", ar: "شحنة سلسلة مبردة" }, billedMileage: 384, actualMileage: 351, duplicateBillingPct: 1.4, overchargePct: 3.2, verdict: "red-flag" },
+  { id: "last-mile", freightType: { en: "Last-mile express", ar: "توصيل سريع للميل الأخير" }, billedMileage: 126, actualMileage: 123, duplicateBillingPct: 0.3, overchargePct: 0.4, verdict: "passed" },
+  { id: "rail-intermodal", freightType: { en: "Rail intermodal", ar: "نقل مشترك بالسكك الحديدية" }, billedMileage: 1520, actualMileage: 1490, duplicateBillingPct: 0.8, overchargePct: 1.9, verdict: "red-flag" },
+];
+
+export const demandTiers: DemandTier[] = [
+  { id: "consumer", label: { en: "Consumer", ar: "المستهلك" }, actual: 42, distorted: 42, audited: 42 },
+  { id: "retailer", label: { en: "Retailer", ar: "تاجر التجزئة" }, actual: 42, distorted: 63, audited: 47 },
+  { id: "wholesaler", label: { en: "Wholesaler", ar: "تاجر الجملة" }, actual: 42, distorted: 84, audited: 51 },
+  { id: "factory", label: { en: "Factory", ar: "المصنع" }, actual: 42, distorted: 112, audited: 56 },
+  { id: "supplier", label: { en: "Supplier", ar: "المورد" }, actual: 42, distorted: 145, audited: 61 },
+];
+
+export const routeRegions: RouteRegion[] = [
+  { id: "mediterranean", region: { en: "Mediterranean", ar: "البحر المتوسط" }, mileageWastePct: 11.8, fuelLossPct: 7.4, gpsDeviationPct: 9.2, optimizedSavings: 428000 },
+  { id: "red-sea", region: { en: "Red Sea corridor", ar: "ممر البحر الأحمر" }, mileageWastePct: 8.6, fuelLossPct: 5.1, gpsDeviationPct: 6.7, optimizedSavings: 356000 },
+  { id: "gulf", region: { en: "Gulf distribution", ar: "توزيع الخليج" }, mileageWastePct: 14.2, fuelLossPct: 9.8, gpsDeviationPct: 12.5, optimizedSavings: 517000 },
+  { id: "north-africa", region: { en: "North Africa", ar: "شمال أفريقيا" }, mileageWastePct: 6.9, fuelLossPct: 4.4, gpsDeviationPct: 5.6, optimizedSavings: 219000 },
+  { id: "levant", region: { en: "Levant", ar: "بلاد الشام" }, mileageWastePct: 9.7, fuelLossPct: 6.3, gpsDeviationPct: 7.9, optimizedSavings: 302000 },
+];
+
+export const warehouseSpecs: WarehouseSpec[] = [
+  {
+    id: "dead-stock",
+    title: { en: "Dead stock identification", ar: "تحديد المخزون الراكد" },
+    impact: { en: "$1.24M cash trapped in 180+ day SKUs", ar: "١٫٢٤ مليون دولار نقدية عالقة في أصناف تتجاوز ١٨٠ يومًا" },
+    cause: { en: "Forecast overrides bypass aging rules", ar: "تجاوزات التنبؤ تتخطى قواعد التقادم" },
+    fix: { en: "Auto-route aged stock to disposition review", ar: "توجيه المخزون القديم تلقائيًا إلى مراجعة التصريف" },
+    tone: "amber",
+  },
+  {
+    id: "rfid-mismatch",
+    title: { en: "Barcode / RFID mismatch", ar: "عدم تطابق الباركود / RFID" },
+    impact: { en: "2.6% variance creates 19 min search time", ar: "فروقات ٢٫٦٪ تخلق ١٩ دقيقة بحث إضافية" },
+    cause: { en: "Inbound labels drift from WMS master data", ar: "ملصقات الوارد تنحرف عن بيانات WMS الرئيسية" },
+    fix: { en: "Gate every put-away with scan-to-location", ar: "ربط كل تخزين بمسح إلى الموقع" },
+    tone: "red",
+  },
+  {
+    id: "picking-bottleneck",
+    title: { en: "Order picking bottleneck", ar: "اختناق التقاط الطلبات" },
+    impact: { en: "42 min peak delay across priority waves", ar: "تأخير ٤٢ دقيقة في موجات الأولوية" },
+    cause: { en: "High-velocity SKUs split across aisles", ar: "الأصناف عالية الحركة موزعة بين الممرات" },
+    fix: { en: "Re-slot by velocity and route adjacency", ar: "إعادة توزيع حسب السرعة وتقارب المسار" },
+    tone: "cyan",
+  },
+  {
+    id: "shrinkage",
+    title: { en: "Shrinkage + loss prevention", ar: "الانكماش ومنع الخسائر" },
+    impact: { en: "0.9% unexplained loss on controlled stock", ar: "فقد غير مفسر بنسبة ٠٫٩٪ من المخزون الخاضع للرقابة" },
+    cause: { en: "Exception counts are reconciled after dispatch", ar: "تتم مطابقة الاستثناءات بعد الشحن" },
+    fix: { en: "Close exceptions at scan time with owner", ar: "إغلاق الاستثناء عند المسح مع تحديد المسؤول" },
+    tone: "emerald",
+  },
+];
+
+export const supplyNodes: SupplyNode[] = [
+  { id: "port", label: { en: "Port", ar: "الميناء" }, position: [-3.7, 1.1, 0], status: "verified" },
+  { id: "yard", label: { en: "Yard", ar: "الساحة" }, position: [-2.0, -0.6, 0.1], status: "leak" },
+  { id: "factory", label: { en: "Factory", ar: "المصنع" }, position: [-0.5, 1.65, -0.2], status: "verified" },
+  { id: "crossdock", label: { en: "Cross-dock", ar: "التخزين العابر" }, position: [1.0, -0.8, 0.15], status: "phantom" },
+  { id: "hub", label: { en: "Regional hub", ar: "المركز الإقليمي" }, position: [2.25, 1.0, -0.1], status: "verified" },
+  { id: "store", label: { en: "Store", ar: "المتجر" }, position: [3.7, -0.35, 0], status: "leak" },
+  { id: "returns", label: { en: "Returns", ar: "المرتجعات" }, position: [1.1, 2.15, 0.05], status: "phantom" },
+  { id: "data", label: { en: "Data lake", ar: "بحيرة البيانات" }, position: [-1.35, 2.6, 0.1], status: "verified" },
+];
+
+export const warehouseBins: WarehouseBin[] = [
+  { id: "A01", x: -3.6, y: -1.5, z: -1.4, sku: { en: "SKU 4102", ar: "صنف ٤١٠٢" }, status: "audited" },
+  { id: "A02", x: -2.4, y: -1.5, z: -1.4, sku: { en: "SKU 4108", ar: "صنف ٤١٠٨" }, status: "audited" },
+  { id: "A03", x: -1.2, y: -1.5, z: -1.4, sku: { en: "SKU 4114", ar: "صنف ٤١١٤" }, status: "mismatch" },
+  { id: "A04", x: 0, y: -1.5, z: -1.4, sku: { en: "SKU 4120", ar: "صنف ٤١٢٠" }, status: "audited" },
+  { id: "A05", x: 1.2, y: -1.5, z: -1.4, sku: { en: "SKU 4126", ar: "صنف ٤١٢٦" }, status: "audited" },
+  { id: "A06", x: 2.4, y: -1.5, z: -1.4, sku: { en: "SKU 4132", ar: "صنف ٤١٣٢" }, status: "mismatch" },
+  { id: "A07", x: 3.6, y: -1.5, z: -1.4, sku: { en: "SKU 4138", ar: "صنف ٤١٣٨" }, status: "audited" },
+  { id: "B01", x: -3.6, y: 0, z: -1.4, sku: { en: "SKU 4201", ar: "صنف ٤٢٠١" }, status: "audited" },
+  { id: "B02", x: -2.4, y: 0, z: -1.4, sku: { en: "SKU 4207", ar: "صنف ٤٢٠٧" }, status: "mismatch" },
+  { id: "B03", x: -1.2, y: 0, z: -1.4, sku: { en: "SKU 4213", ar: "صنف ٤٢١٣" }, status: "audited" },
+  { id: "B04", x: 0, y: 0, z: -1.4, sku: { en: "SKU 4219", ar: "صنف ٤٢١٩" }, status: "audited" },
+  { id: "B05", x: 1.2, y: 0, z: -1.4, sku: { en: "SKU 4225", ar: "صنف ٤٢٢٥" }, status: "audited" },
+  { id: "B06", x: 2.4, y: 0, z: -1.4, sku: { en: "SKU 4231", ar: "صنف ٤٢٣١" }, status: "mismatch" },
+  { id: "B07", x: 3.6, y: 0, z: -1.4, sku: { en: "SKU 4237", ar: "صنف ٤٢٣٧" }, status: "audited" },
+  { id: "C01", x: -3.6, y: 1.5, z: -1.4, sku: { en: "SKU 4300", ar: "صنف ٤٣٠٠" }, status: "mismatch" },
+  { id: "C02", x: -2.4, y: 1.5, z: -1.4, sku: { en: "SKU 4306", ar: "صنف ٤٣٠٦" }, status: "audited" },
+  { id: "C03", x: -1.2, y: 1.5, z: -1.4, sku: { en: "SKU 4312", ar: "صنف ٤٣١٢" }, status: "audited" },
+  { id: "C04", x: 0, y: 1.5, z: -1.4, sku: { en: "SKU 4318", ar: "صنف ٤٣١٨" }, status: "audited" },
+  { id: "C05", x: 1.2, y: 1.5, z: -1.4, sku: { en: "SKU 4324", ar: "صنف ٤٣٢٤" }, status: "mismatch" },
+  { id: "C06", x: 2.4, y: 1.5, z: -1.4, sku: { en: "SKU 4330", ar: "صنف ٤٣٣٠" }, status: "audited" },
+  { id: "C07", x: 3.6, y: 1.5, z: -1.4, sku: { en: "SKU 4336", ar: "صنف ٤٣٣٦" }, status: "audited" },
+  { id: "D01", x: -3.6, y: -1.5, z: 0.6, sku: { en: "SKU 4405", ar: "صنف ٤٤٠٥" }, status: "audited" },
+  { id: "D02", x: -2.4, y: -1.5, z: 0.6, sku: { en: "SKU 4411", ar: "صنف ٤٤١١" }, status: "audited" },
+  { id: "D03", x: -1.2, y: -1.5, z: 0.6, sku: { en: "SKU 4417", ar: "صنف ٤٤١٧" }, status: "audited" },
+  { id: "D04", x: 0, y: -1.5, z: 0.6, sku: { en: "SKU 4423", ar: "صنف ٤٤٢٣" }, status: "mismatch" },
+  { id: "D05", x: 1.2, y: -1.5, z: 0.6, sku: { en: "SKU 4429", ar: "صنف ٤٤٢٩" }, status: "audited" },
+  { id: "D06", x: 2.4, y: -1.5, z: 0.6, sku: { en: "SKU 4435", ar: "صنف ٤٤٣٥" }, status: "mismatch" },
+  { id: "D07", x: 3.6, y: -1.5, z: 0.6, sku: { en: "SKU 4441", ar: "صنف ٤٤٤١" }, status: "audited" },
+  { id: "E01", x: -3.6, y: 0, z: 0.6, sku: { en: "SKU 4504", ar: "صنف ٤٥٠٤" }, status: "audited" },
+  { id: "E02", x: -2.4, y: 0, z: 0.6, sku: { en: "SKU 4510", ar: "صنف ٤٥١٠" }, status: "mismatch" },
+  { id: "E03", x: -1.2, y: 0, z: 0.6, sku: { en: "SKU 4516", ar: "صنف ٤٥١٦" }, status: "audited" },
+  { id: "E04", x: 0, y: 0, z: 0.6, sku: { en: "SKU 4522", ar: "صنف ٤٥٢٢" }, status: "audited" },
+  { id: "E05", x: 1.2, y: 0, z: 0.6, sku: { en: "SKU 4528", ar: "صنف ٤٥٢٨" }, status: "audited" },
+  { id: "E06", x: 2.4, y: 0, z: 0.6, sku: { en: "SKU 4534", ar: "صنف ٤٥٣٤" }, status: "audited" },
+  { id: "E07", x: 3.6, y: 0, z: 0.6, sku: { en: "SKU 4540", ar: "صنف ٤٥٤٠" }, status: "mismatch" },
+  { id: "F01", x: -3.6, y: 1.5, z: 0.6, sku: { en: "SKU 4603", ar: "صنف ٤٦٠٣" }, status: "audited" },
+  { id: "F02", x: -2.4, y: 1.5, z: 0.6, sku: { en: "SKU 4609", ar: "صنف ٤٦٠٩" }, status: "audited" },
+  { id: "F03", x: -1.2, y: 1.5, z: 0.6, sku: { en: "SKU 4615", ar: "صنف ٤٦١٥" }, status: "mismatch" },
+  { id: "F04", x: 0, y: 1.5, z: 0.6, sku: { en: "SKU 4621", ar: "صنف ٤٦٢١" }, status: "audited" },
+  { id: "F05", x: 1.2, y: 1.5, z: 0.6, sku: { en: "SKU 4627", ar: "صنف ٤٦٢٧" }, status: "audited" },
+  { id: "F06", x: 2.4, y: 1.5, z: 0.6, sku: { en: "SKU 4633", ar: "صنف ٤٦٣٣" }, status: "audited" },
+  { id: "F07", x: 3.6, y: 1.5, z: 0.6, sku: { en: "SKU 4639", ar: "صنف ٤٦٣٩" }, status: "mismatch" },
+];
+
+export const supplyEdges: Array<[string, string]> = [
+  ["port", "yard"],
+  ["yard", "factory"],
+  ["factory", "crossdock"],
+  ["crossdock", "hub"],
+  ["hub", "store"],
+  ["data", "factory"],
+  ["data", "hub"],
+  ["returns", "factory"],
+  ["returns", "data"],
+  ["yard", "data"],
+];
