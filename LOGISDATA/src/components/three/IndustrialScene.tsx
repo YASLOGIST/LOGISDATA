@@ -37,6 +37,9 @@ const LOOK_TARGETS: Array<[number, number, number]> = [
   [0, -0.1, 0],
 ];
 
+const CAMERA_VECTORS = CAMERA_TARGETS.map((target) => new THREE.Vector3(...target));
+const LOOK_VECTORS = LOOK_TARGETS.map((target) => new THREE.Vector3(...target));
+
 const clamp01 = (value: number) => THREE.MathUtils.clamp(value, 0, 1);
 const smoothStep = (value: number) => value * value * (3 - 2 * value);
 
@@ -48,8 +51,10 @@ function SceneRig({ language, theme, onSectionChange }: SceneRigProps) {
   const routeRef = useRef<THREE.Group>(null);
   const warehouseRef = useRef<THREE.Group>(null);
   const lastSection = useRef(-1);
-  const cameraPosition = useRef(new THREE.Vector3(...CAMERA_TARGETS[0]));
-  const lookPosition = useRef(new THREE.Vector3(...LOOK_TARGETS[0]));
+  const cameraPosition = useRef(CAMERA_VECTORS[0].clone());
+  const lookPosition = useRef(LOOK_VECTORS[0].clone());
+  const cameraDesired = useRef(new THREE.Vector3());
+  const lookDesired = useRef(new THREE.Vector3());
 
   useFrame((state, delta) => {
     const pagePosition = scroll.offset * 5;
@@ -63,14 +68,10 @@ function SceneRig({ language, theme, onSectionChange }: SceneRigProps) {
       onSectionChange(currentSection);
     }
 
-    const cameraStart = new THREE.Vector3(...CAMERA_TARGETS[currentSection]);
-    const cameraEnd = new THREE.Vector3(...CAMERA_TARGETS[nextSection]);
-    const lookStart = new THREE.Vector3(...LOOK_TARGETS[currentSection]);
-    const lookEnd = new THREE.Vector3(...LOOK_TARGETS[nextSection]);
-    const cameraDesired = cameraStart.lerp(cameraEnd, transition);
-    const lookDesired = lookStart.lerp(lookEnd, transition);
-    cameraPosition.current.lerp(cameraDesired, 1 - Math.exp(-4.6 * delta));
-    lookPosition.current.lerp(lookDesired, 1 - Math.exp(-5.2 * delta));
+    cameraDesired.current.copy(CAMERA_VECTORS[currentSection]).lerp(CAMERA_VECTORS[nextSection], transition);
+    lookDesired.current.copy(LOOK_VECTORS[currentSection]).lerp(LOOK_VECTORS[nextSection], transition);
+    cameraPosition.current.lerp(cameraDesired.current, 1 - Math.exp(-4.6 * delta));
+    lookPosition.current.lerp(lookDesired.current, 1 - Math.exp(-5.2 * delta));
     state.camera.position.copy(cameraPosition.current);
     state.camera.lookAt(lookPosition.current);
 

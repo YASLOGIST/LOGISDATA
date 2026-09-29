@@ -2,7 +2,7 @@
 
 import { Canvas } from "@react-three/fiber";
 import { Html, Scroll, ScrollControls, useScroll } from "@react-three/drei";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { Languages, Moon, Sun, ChevronDown } from "lucide-react";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { presentationCopy } from "@/lib/data";
@@ -14,7 +14,16 @@ import { HeroSection } from "@/components/sections/HeroSection";
 import { RoutesSection } from "@/components/sections/RoutesSection";
 import { WarehouseSection } from "@/components/sections/WarehouseSection";
 import { IndustrialScene } from "@/components/three/IndustrialScene";
-import { IntroScreen } from "@/components/IntroScreen";
+
+const SECTION_COUNT = presentationCopy.nav.sections.length;
+const LANGUAGE_KEY = "logisdata.language";
+const THEME_KEY = "logisdata.theme";
+
+function storedPreference<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  const value = window.localStorage.getItem(key);
+  return allowed.includes(value as T) ? value as T : fallback;
+}
 
 interface ScrollBridgeProps {
   onReady: (element: HTMLDivElement) => void;
@@ -41,10 +50,11 @@ function SceneLoader({ language }: { language: Language }) {
 }
 
 export function Presentation() {
-  const [entered, setEntered] = useState(false);
-  const [language, setLanguage] = useState<Language>("en");
-  const [theme, setTheme] = useState<ThemeMode>("dark");
+  const [language, setLanguage] = useState<Language>(() => storedPreference(LANGUAGE_KEY, ["en", "ar"], "en"));
+  const [theme, setTheme] = useState<ThemeMode>(() => storedPreference(THEME_KEY, ["dark", "light"], "dark"));
   const [activeSection, setActiveSection] = useState(0);
+  const [pageVisible, setPageVisible] = useState(true);
+  const reduceMotion = useReducedMotion();
   const scrollElement = useRef<HTMLDivElement | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const onSectionChange = useCallback((section: number) => setActiveSection(section), []);
@@ -52,22 +62,53 @@ export function Presentation() {
     scrollElement.current = element;
   }, []);
 
-  const goToSection = (section: number) => {
+  const goToSection = useCallback((section: number) => {
     const element = scrollElement.current;
     if (!element) return;
-    element.scrollTo({ top: section * element.clientHeight, behavior: "smooth" });
-  };
+    element.scrollTo({
+      top: section * element.clientHeight,
+      behavior: reduceMotion ? "auto" : "smooth",
+    });
+  }, [reduceMotion]);
 
   const toggleLanguage = () => setLanguage((current) => current === "en" ? "ar" : "en");
   const toggleTheme = () => setTheme((current) => current === "dark" ? "light" : "dark");
 
-  if (!entered) {
-    return (
-      <AnimatePresence mode="wait">
-        <IntroScreen key="intro" onEnter={() => setEntered(true)} />
-      </AnimatePresence>
-    );
-  }
+  useEffect(() => {
+    window.localStorage.setItem(LANGUAGE_KEY, language);
+    document.documentElement.lang = language;
+    document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
+  }, [language]);
+
+  useEffect(() => {
+    window.localStorage.setItem(THEME_KEY, theme);
+    document.documentElement.style.colorScheme = theme;
+  }, [theme]);
+
+  useEffect(() => {
+    const onVisibilityChange = () => setPageVisible(document.visibilityState === "visible");
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target?.matches("input, textarea, select, [contenteditable='true']")) return;
+
+      let destination: number | null = null;
+      if (["ArrowDown", "ArrowRight", "PageDown"].includes(event.key)) destination = Math.min(SECTION_COUNT - 1, activeSection + 1);
+      if (["ArrowUp", "ArrowLeft", "PageUp"].includes(event.key)) destination = Math.max(0, activeSection - 1);
+      if (event.key === "Home") destination = 0;
+      if (event.key === "End") destination = SECTION_COUNT - 1;
+      if (destination !== null) {
+        event.preventDefault();
+        goToSection(destination);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [activeSection, goToSection]);
 
   return (
     <motion.div
@@ -86,7 +127,7 @@ export function Presentation() {
         </button>
         <nav className="section-nav" aria-label="Presentation sections">
           {presentationCopy.nav.sections.map((section, index) => (
-            <button key={index} type="button" className={`section-nav-button ${activeSection === index ? "nav-active" : ""}`} onClick={() => goToSection(index)}>
+            <button key={index} type="button" className={`section-nav-button ${activeSection === index ? "nav-active" : ""}`} onClick={() => goToSection(index)} aria-current={activeSection === index ? "step" : undefined}>
               <span className="nav-index" dir="ltr">0{index + 1}</span>
               <span>{text(section, language)}</span>
             </button>
@@ -109,11 +150,11 @@ export function Presentation() {
           dpr={1}
           camera={{ fov: 42, near: 0.1, far: 100, position: [0, 1.25, 10.5] }}
           gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
-          frameloop="always"
+          frameloop={pageVisible ? "always" : "never"}
         >
           <Suspense fallback={<SceneLoader language={language} />}>
             <ScrollControls
-              pages={5}
+              pages={SECTION_COUNT}
               damping={0.25}
               style={{ scrollSnapType: "y mandatory", scrollSnapStop: "always", scrollbarWidth: "none", overscrollBehaviorY: "contain" }}
             >
@@ -133,13 +174,13 @@ export function Presentation() {
         </Canvas>
       </div>
 
-      <div className="presentation-progress" aria-hidden="true">
+      <nav className="presentation-progress" aria-label={language === "ar" ? "تقدم العرض" : "Presentation progress"}>
         {presentationCopy.nav.sections.map((section, index) => (
-          <button key={index} type="button" className={`progress-dot ${activeSection === index ? "progress-dot-active" : ""}`} onClick={() => goToSection(index)} aria-label={text(section, language)}>
+          <button key={index} type="button" className={`progress-dot ${activeSection === index ? "progress-dot-active" : ""}`} onClick={() => goToSection(index)} aria-label={text(section, language)} aria-current={activeSection === index ? "step" : undefined}>
             <span />
           </button>
         ))}
-      </div>
+      </nav>
       <div className="bottom-scroll-hint"><ChevronDown size={14} /><span>{text(presentationCopy.nav.scrollHint, language)}</span></div>
     </motion.div>
   );

@@ -17,7 +17,7 @@
   --emerald: #4de1c1;
   --cyan: #7dd3fc;
   --red: #fb5b5b;
-  --font-display: var(--font-cairo), ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Cairo Variable", ui-sans-serif, system-ui, sans-serif;
 }
 
 .presentation-root[data-theme="light"] {
@@ -1622,4 +1622,50 @@ button:focus-visible {
   .intro-university-ar { font-size: 0.92rem; }
   .intro-credit-line { font-size: 0.7rem; }
   .intro-footer-note { margin-top: 20px; font-size: 0.46rem; }
+}
+
+/* Deferred engine states stay useful before/without WebGL. */
+.experience-loader,
+.experience-fallback {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  padding: 28px;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(77, 225, 193, 0.1), transparent 24rem),
+    var(--bg-deep);
+  color: var(--text);
+  text-align: center;
+}
+
+.experience-loader > strong {
+  color: var(--emerald);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+}
+
+.experience-loader > span,
+.experience-fallback p {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.experience-fallback h1 {
+  max-width: 620px;
+  margin: 8px 0 0;
+  font-size: clamp(2rem, 5vw, 4rem);
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.experience-fallback .intro-enter-btn {
+  margin-top: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loader-orbit { display: none; }
 }

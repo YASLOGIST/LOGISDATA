@@ -40,7 +40,7 @@ export function HeroSection({ language, active }: HeroSectionProps) {
             <div>
               <p className="byline-primary">{copy.presenter}</p>
               <p className="byline-secondary">
-                {text(copy.byline, language)} <span className="separator">//</span> Reg. {copy.registration}
+                {text(copy.byline, language)} <span className="separator">{"//"}</span> Reg. {copy.registration}
               </p>
             </div>
           </div>

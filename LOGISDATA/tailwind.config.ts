@@ -27,8 +27,8 @@ const config: Config = {
         34: "8.5rem",
       },
       fontFamily: {
-        sans: ["var(--font-cairo)", "ui-sans-serif", "system-ui", "sans-serif"],
-        display: ["var(--font-cairo)", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["Cairo Variable", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["Cairo Variable", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       fontSize: {
         caption: ["0.68rem", { lineHeight: "1.3", letterSpacing: "0.12em" }],

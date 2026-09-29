@@ -15,7 +15,16 @@ function createPool(): Pool {
   if (!databaseUrl) {
     throw new Error("DATABASE_URL is required");
   }
-  const pool = globalForDb.__arenaNextJsPostgresqlPool ?? new Pool({ connectionString: databaseUrl });
+  const configuredMax = Number.parseInt(process.env.DATABASE_POOL_MAX ?? "10", 10);
+  const max = Number.isFinite(configuredMax) ? Math.min(50, Math.max(1, configuredMax)) : 10;
+  const pool = globalForDb.__arenaNextJsPostgresqlPool ?? new Pool({
+    connectionString: databaseUrl,
+    max,
+    connectionTimeoutMillis: 5_000,
+    idleTimeoutMillis: 30_000,
+    allowExitOnIdle: true,
+    ssl: process.env.DATABASE_SSL === "true" ? { rejectUnauthorized: true } : undefined,
+  });
   if (process.env.NODE_ENV !== "production") {
     globalForDb.__arenaNextJsPostgresqlPool = pool;
   }
