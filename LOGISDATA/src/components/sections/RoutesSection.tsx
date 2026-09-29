@@ -69,7 +69,7 @@ export function RoutesSection({ language, active }: RoutesSectionProps) {
               </motion.div>
             ))}
           </div>
-          <div className="route-card-footer"><span><span className="route-line route-line-green" />{text(copy.optimized, language)} <span className="separator">//</span> <span className="route-line route-line-red" />{text(copy.detour, language)}</span><span>{text(copy.terrainLabel, language)} / 04</span></div>
+          <div className="route-card-footer"><span><span className="route-line route-line-green" />{text(copy.optimized, language)} <span className="separator">{"//"}</span> <span className="route-line route-line-red" />{text(copy.detour, language)}</span><span>{text(copy.terrainLabel, language)} / 04</span></div>
         </motion.div>
       </div>
     </section>

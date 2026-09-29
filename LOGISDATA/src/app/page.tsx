@@ -1,5 +1,5 @@
-import { Presentation } from "@/components/Presentation";
+import { PresentationShell } from "@/components/PresentationShell";
 
 export default function HomePage() {
-  return <Presentation />;
+  return <PresentationShell />;
 }
