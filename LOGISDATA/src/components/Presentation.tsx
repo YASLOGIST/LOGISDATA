@@ -89,10 +89,33 @@ export function Presentation() {
   const onScrollReady = useCallback((element: HTMLDivElement) => {
     scrollElement.current = element;
 
+    /*
+     * PERF: `scrollHeight` and `clientHeight` are layout-dependent reads.
+     * Taking them inside the scroll handler forced a style+layout flush on
+     * every single scroll event, interleaved with the framer-motion writes
+     * the same event triggers -- a textbook layout-thrash that showed up as
+     * stutter on trackpads (which fire scroll at display rate). Neither
+     * value can change while scrolling: cache them and refresh only when
+     * the box actually resizes.
+     */
+    let scrollHeight = element.scrollHeight;
+    let clientHeight = element.clientHeight;
+    const measure = () => {
+      scrollHeight = element.scrollHeight;
+      clientHeight = element.clientHeight;
+    };
+
     const sync = () =>
-      setActiveSection(
-        sectionFromScrollTop(element.scrollTop, element.scrollHeight, element.clientHeight),
-      );
+      setActiveSection(sectionFromScrollTop(element.scrollTop, scrollHeight, clientHeight));
+
+    const observer =
+      typeof ResizeObserver === "function"
+        ? new ResizeObserver(() => {
+            measure();
+            sync();
+          })
+        : null;
+    observer?.observe(element);
 
     element.addEventListener("scroll", sync, { passive: true });
 
@@ -109,6 +132,7 @@ export function Presentation() {
     let frame = 0;
     let attempts = 0;
     const flushWhenScrollable = () => {
+      measure();
       const scrollable = element.scrollHeight - element.clientHeight > 0;
       if (!scrollable && attempts < 180) {
         attempts += 1;
@@ -142,6 +166,7 @@ export function Presentation() {
 
     scrollListener.current = () => {
       cancelAnimationFrame(frame);
+      observer?.disconnect();
       element.removeEventListener("scroll", sync);
     };
   }, []);
@@ -365,15 +390,43 @@ export function Presentation() {
           camera={{ fov: 42, near: 0.1, far: 100, position: [0, 1.25, 10.5] }}
           gl={{ antialias: device.antialias, alpha: false, powerPreference: "high-performance" }}
           frameloop={frameloop}
+          /*
+           * PERF: enables the adaptive-resolution path. `SceneRig` calls
+           * `performance.regress()` on every scroll event, which drops
+           * `state.performance.current` to `min`; `<AdaptiveDpr />` reads it
+           * and re-renders the scene at 60% resolution *while the user is
+           * scrolling*, then restores full resolution `debounce` ms after
+           * the last event. Fill rate is the dominant cost on retina
+           * panels, so this is where scroll-time frame budget is won.
+           */
+          performance={{ min: 0.6, max: 1, debounce: 220 }}
         >
           <Suspense fallback={<SceneLoader language={language} />}>
             <AdaptiveDpr pixelated={false} />
             <ScrollControls
               pages={SECTION_COUNT}
-              damping={reduced ? 0 : 0.25}
+              /*
+               * `damping` is a smooth-time in seconds: drei eases its own
+               * `offset` toward the raw scroll position over this window,
+               * and BOTH the camera rig and the translated HTML follow the
+               * eased value. At 0.25 the deck visibly trailed the wheel by
+               * a quarter second -- which reads as "slow/laggy scrolling"
+               * even at a perfect 60fps. 0.12 keeps the easing (no harsh
+               * 1:1 snap, no judder on discrete wheel steps) while halving
+               * the input-to-pixel delay.
+               */
+              damping={reduced ? 0 : 0.12}
+              /*
+               * `scrollSnapType: y mandatory` + `scrollSnapStop: always`
+               * were removed. drei renders the deck's HTML into its
+               * `position: fixed` overlay, so the sections are not in this
+               * container's scrollable flow and were never valid snap
+               * targets -- the only in-flow child is drei's empty fill
+               * div. The declaration therefore snapped nothing while still
+               * making the compositor run snap-target resolution on each
+               * scroll update, and `overscroll-behavior` work on top.
+               */
               style={{
-                scrollSnapType: "y mandatory",
-                scrollSnapStop: "always",
                 scrollbarWidth: "none",
                 overscrollBehaviorY: "contain",
               }}

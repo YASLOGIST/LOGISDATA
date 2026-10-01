@@ -257,8 +257,22 @@ button:focus-visible {
   width: 100%;
   height: 100vh;
   min-height: 620px;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
+  /*
+   * PERF: each section is a fixed-size, self-contained box. `contain`
+   * promises the engine that nothing inside can affect layout, paint or
+   * style outside it, so a framer-motion opacity/transform change on the
+   * entering section no longer invalidates the other four full-viewport
+   * subtrees stacked in drei's overlay.
+   *
+   * ARCHIVED (not deleted) -- the two declarations below were dead:
+   *     scroll-snap-align: start;
+   *     scroll-snap-stop: always;
+   * drei renders this markup into its `position: fixed` overlay root,
+   * which is outside the scroll container's scrollable flow, so these
+   * elements were never snap targets. The matching `scroll-snap-type`
+   * on the container has been dropped in Presentation.tsx.
+   */
+  contain: layout paint style;
 }
 
 .section-inner {

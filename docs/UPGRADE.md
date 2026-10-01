@@ -152,6 +152,44 @@ This is the same *class* of bug as finding 13, in a different place, and it surv
 
 ---
 
+### 3.2 Scroll-smoothness pass (deck feel, not just frame rate)
+
+Reported symptom: "the 5 sections lag / scroll slowly". Profiling the deck
+separated that into two distinct problems -- **latency** (the deck trailed
+the wheel) and **frame cost** (work done per scroll event) -- and five
+changes, each with its own mechanism:
+
+| # | Change | File | Mechanism / why it was costing |
+|---|--------|------|-------------------------------|
+| S1 | `ScrollControls damping` 0.25 -> 0.12 | `Presentation.tsx` | `damping` is a smooth-time in **seconds**. Both the camera rig and drei's translated HTML follow the eased offset, so the whole deck trailed the input by ~250 ms. That reads as "slow scrolling" at a perfect 60 fps. Halved, while keeping the easing that hides discrete wheel steps. |
+| S2 | `performance={{ min: 0.6, max: 1, debounce: 220 }}` + `performance.regress()` on every scroll event | `Presentation.tsx`, `three/IndustrialScene.tsx` | `<AdaptiveDpr />` was already mounted but **nothing ever called `regress()`**, so it never adapted. It now renders at 60% resolution for the duration of a gesture and restores full resolution 220 ms after the last event. Fill rate dominates on retina, and scrolling is exactly when the main thread is busiest. |
+| S3 | Cached `scrollHeight`/`clientHeight`, refreshed by a `ResizeObserver` | `Presentation.tsx` | The scroll handler read both every event. They are layout-dependent, so each read forced a style+layout flush interleaved with the framer-motion writes the same event triggers -- layout thrash at trackpad event rate. Neither value can change mid-scroll. |
+| S4 | `memo` on `IndustrialScene` and on all five section components | `three/IndustrialScene.tsx`, `sections/*Section.tsx` | `Presentation` re-renders on every section change (nav highlight, progress bar, live region). That used to reconcile the **entire R3F element tree** and all **five** full-viewport HTML subtrees, on the exact frame the camera was mid-transition. Now the scene does not re-render at all and only the leaving + entering sections do (2 of 5). |
+| S5 | Dropped dead `scroll-snap-type: y mandatory` / `scroll-snap-stop: always` / `scroll-snap-align: start`; added `contain: layout paint style` to `.presentation-section` | `Presentation.tsx`, `globals.css`, `sections/*Section.tsx` | **CONFIRMED dead**: drei renders the deck's HTML into its `position: fixed` overlay root, which is outside the scroll container's scrollable flow, so those sections were never valid snap targets -- the only in-flow child is drei's empty fill div. The declarations snapped nothing while still making the compositor resolve snap targets per scroll update. `contain` replaces them with a real guarantee: a motion change in one section cannot invalidate layout/paint/style in the other four. |
+
+The CSS rules are **archived in place as comments**, not deleted (see
+`.presentation-section` in `globals.css`), per the no-silent-deletion rule.
+
+**New automated coverage** (`tests/e2e/performance.spec.ts`): the old
+"holds an interactive frame rate while scrolling" test never scrolled -- it
+sampled an idle canvas. Two real tests were added:
+
+- *"scrolling through all five sections stays smooth"* drives the actual
+  scroll container across the full range in 60 rAF-paced steps, records
+  every inter-frame gap, and asserts the **median** and **p95** gap. A
+  dropped frame is a long gap, so p95 is the honest jank metric.
+- *"jumping to a section settles promptly"* presses `End` and asserts the
+  progressbar reaches `aria-valuenow="5"` inside the latency budget. This
+  is the regression guard for S1: re-raising `damping` fails it.
+
+CI thresholds are deliberately looser than the hardware budget because CI
+runners have no GPU and fall back to SwiftShader software rasterisation;
+they are jank detectors, not device budgets.
+
+Payload impact: **198,355 -> 198,343 B gz**; CSS **42,888 -> 42,831 B**.
+Every change is logic or configuration, so smoothness was bought with no
+byte cost.
+
 ## 4. Verification commands
 
 ```bash

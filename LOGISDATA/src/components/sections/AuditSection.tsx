@@ -1,5 +1,7 @@
 "use client";
 
+import { memo } from "react";
+
 import { motion } from "framer-motion";
 import { AlertTriangle, Check, FileCheck2, ScanLine } from "lucide-react";
 import { freightAuditRows, presentationCopy } from "@/lib/data";
@@ -11,7 +13,7 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { DatasetExport } from "@/components/ui/DatasetExport";
 import type { SectionProps } from "./types";
 
-export function AuditSection({ language, active, reduced }: SectionProps) {
+function AuditSectionImpl({ language, active, reduced }: SectionProps) {
   const copy = presentationCopy.audit;
   const dim = (value: number) => (active ? 1 : value);
   const rtl = language === "ar";
@@ -19,7 +21,7 @@ export function AuditSection({ language, active, reduced }: SectionProps) {
   return (
     <section
       id={SECTIONS[1].domId}
-      className="presentation-section section-audit snap-start"
+      className="presentation-section section-audit"
       aria-labelledby="audit-title"
     >
       <div className="section-inner">
@@ -113,3 +115,12 @@ export function AuditSection({ language, active, reduced }: SectionProps) {
     </section>
   );
 }
+
+/**
+ * PERF: memoised. Crossing a section boundary flips `active` on exactly
+ * two of the five sections, but the parent re-render used to reconcile all
+ * five full-viewport subtrees (cards, tables, counters, framer-motion
+ * nodes) on that same frame. With `memo` only the leaving and entering
+ * sections do any work.
+ */
+export const AuditSection = memo(AuditSectionImpl);

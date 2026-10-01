@@ -1,5 +1,7 @@
 "use client";
 
+import { memo } from "react";
+
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { ArrowDown, Network, ShieldCheck } from "lucide-react";
@@ -11,14 +13,14 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { MetricCounter } from "@/components/MetricCounter";
 import type { SectionProps } from "./types";
 
-export function HeroSection({ language, active, reduced }: SectionProps) {
+function HeroSectionImpl({ language, active, reduced }: SectionProps) {
   const copy = presentationCopy.hero;
   const dim = (value: number) => (active ? 1 : value);
 
   return (
     <section
       id={SECTIONS[0].domId}
-      className="presentation-section section-hero snap-start"
+      className="presentation-section section-hero"
       aria-labelledby="hero-title"
     >
       <div className="section-inner hero-inner">
@@ -112,3 +114,12 @@ export function HeroSection({ language, active, reduced }: SectionProps) {
     </section>
   );
 }
+
+/**
+ * PERF: memoised. Crossing a section boundary flips `active` on exactly
+ * two of the five sections, but the parent re-render used to reconcile all
+ * five full-viewport subtrees (cards, tables, counters, framer-motion
+ * nodes) on that same frame. With `memo` only the leaving and entering
+ * sections do any work.
+ */
+export const HeroSection = memo(HeroSectionImpl);

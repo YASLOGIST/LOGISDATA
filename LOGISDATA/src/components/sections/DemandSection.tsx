@@ -1,5 +1,7 @@
 "use client";
 
+import { memo } from "react";
+
 import { motion } from "framer-motion";
 import { Activity, ArrowDownRight, TrendingDown } from "lucide-react";
 import { demandTiers, presentationCopy } from "@/lib/data";
@@ -11,7 +13,7 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { DatasetExport } from "@/components/ui/DatasetExport";
 import type { SectionProps } from "./types";
 
-export function DemandSection({ language, active, reduced }: SectionProps) {
+function DemandSectionImpl({ language, active, reduced }: SectionProps) {
   const copy = presentationCopy.demand;
   const { maxSignal } = demandSummary;
   const dim = (value: number) => (active ? 1 : value);
@@ -21,7 +23,7 @@ export function DemandSection({ language, active, reduced }: SectionProps) {
   return (
     <section
       id={SECTIONS[2].domId}
-      className="presentation-section section-demand snap-start"
+      className="presentation-section section-demand"
       aria-labelledby="demand-title"
     >
       <div className="section-inner">
@@ -160,3 +162,12 @@ export function DemandSection({ language, active, reduced }: SectionProps) {
     </section>
   );
 }
+
+/**
+ * PERF: memoised. Crossing a section boundary flips `active` on exactly
+ * two of the five sections, but the parent re-render used to reconcile all
+ * five full-viewport subtrees (cards, tables, counters, framer-motion
+ * nodes) on that same frame. With `memo` only the leaving and entering
+ * sections do any work.
+ */
+export const DemandSection = memo(DemandSectionImpl);

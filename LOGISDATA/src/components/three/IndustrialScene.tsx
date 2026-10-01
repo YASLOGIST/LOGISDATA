@@ -2,7 +2,7 @@
 
 import { useFrame, useThree } from "@react-three/fiber";
 import { useScroll } from "@react-three/drei";
-import { useEffect, useMemo, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { SECTION_COUNT, pagePositionFromOffset } from "@/lib/sections";
 import type { DeviceProfile } from "@/lib/device";
@@ -56,6 +56,7 @@ const smoothStep = (value: number) => value * value * (3 - 2 * value);
 function SceneRig({ language, theme, device }: IndustrialSceneProps) {
   const scroll = useScroll();
   const invalidate = useThree((state) => state.invalidate);
+  const regress = useThree((state) => state.performance.regress);
   const heroRef = useRef<THREE.Group>(null);
   const auditRef = useRef<THREE.Group>(null);
   const demandRef = useRef<THREE.Group>(null);
@@ -77,13 +78,24 @@ function SceneRig({ language, theme, device }: IndustrialSceneProps) {
    * otherwise the scene freezes on the first paint.
    */
   useEffect(() => {
-    if (!device.reducedMotion) return;
     const element = scroll.el;
-    const onScroll = () => invalidate();
+    const reducedMotion = device.reducedMotion;
+    const onScroll = () => {
+      // PERF: tell R3F we are in a "regressed" state. `<AdaptiveDpr />`
+      // reacts by rendering at the canvas `performance.min` ratio for the
+      // duration of the gesture and restoring full resolution once the
+      // debounce elapses. Scrolling is exactly when the main thread is
+      // busiest, so trading resolution for frame time here is free
+      // perceptually and large in cost.
+      regress();
+      // Under reduced motion the loop is `frameloop="demand"`, so a frame
+      // must also be requested explicitly or the scene freezes on paint 1.
+      if (reducedMotion) invalidate();
+    };
     element.addEventListener("scroll", onScroll, { passive: true });
     invalidate();
     return () => element.removeEventListener("scroll", onScroll);
-  }, [device.reducedMotion, invalidate, scroll.el]);
+  }, [device.reducedMotion, invalidate, regress, scroll.el]);
 
   useFrame((state, delta) => {
     // Clamp delta so a backgrounded tab resuming after minutes does not
@@ -151,6 +163,16 @@ function SceneRig({ language, theme, device }: IndustrialSceneProps) {
   );
 }
 
-export function IndustrialScene(props: IndustrialSceneProps) {
+/**
+ * PERF: memoised. `Presentation` re-renders every time the active section
+ * changes (it owns the nav highlight, the progress bar and the live
+ * region). Without this, each of those re-renders walked the whole R3F
+ * element tree and reconciled every mesh, material and label -- on the
+ * exact frame the camera was mid-transition, which is when a dropped
+ * frame is most visible. `language`, `theme` and `device` are all stable
+ * references from the preferences store, so the scene now re-renders only
+ * when something it actually depends on changes.
+ */
+export const IndustrialScene = memo(function IndustrialScene(props: IndustrialSceneProps) {
   return <SceneRig {...props} />;
-}
+});

@@ -83,6 +83,89 @@ test.describe("performance budget", () => {
     expect(fps, `measured ${fps.toFixed(1)} fps`).toBeGreaterThan(BUDGET.minFps);
   });
 
+  /**
+   * Scroll smoothness, measured rather than asserted by eye.
+   *
+   * The previous "while scrolling" test never scrolled -- it sampled an idle
+   * canvas. This one drives the real scroll container across all five
+   * sections the way a presenter does and records the gaps between animation
+   * frames throughout the sweep. A dropped frame shows up as a long gap, so
+   * the 95th-percentile gap is the honest jank metric.
+   */
+  test("scrolling through all five sections stays smooth", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator("canvas")).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator("#section-overview")).toBeVisible({ timeout: 30_000 });
+    await page.waitForTimeout(1200);
+
+    const report = await page.evaluate(async () => {
+      // drei's scroll container is the only overflowing element in the deck.
+      const container = Array.from(document.querySelectorAll<HTMLElement>("div")).find(
+        (node) => node.scrollHeight - node.clientHeight > node.clientHeight,
+      );
+      if (!container) return { gaps: [] as number[], travelled: 0, scrollable: 0 };
+
+      const gaps: number[] = [];
+      let last = performance.now();
+      let running = true;
+      const tick = () => {
+        const now = performance.now();
+        gaps.push(now - last);
+        last = now;
+        if (running) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+
+      const scrollable = container.scrollHeight - container.clientHeight;
+      const steps = 60;
+      for (let index = 1; index <= steps; index += 1) {
+        container.scrollTop = (scrollable * index) / steps;
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      running = false;
+
+      return { gaps, travelled: container.scrollTop, scrollable };
+    });
+
+    expect(report.scrollable, "the deck must actually be scrollable").toBeGreaterThan(0);
+    expect(report.travelled).toBeGreaterThan(report.scrollable * 0.9);
+    expect(report.gaps.length, "frames were produced during the sweep").toBeGreaterThan(20);
+
+    const sorted = [...report.gaps].sort((a, b) => a - b);
+    const p95 = sorted[Math.floor(sorted.length * 0.95)] ?? Infinity;
+    const median = sorted[Math.floor(sorted.length / 2)] ?? Infinity;
+    /*
+     * CI renders through SwiftShader (no GPU), so these are jank detectors,
+     * not hardware budgets: on a real GPU both figures sit near 16.7ms.
+     */
+    const p95Ceiling = process.env.CI ? 220 : 60;
+    const medianCeiling = process.env.CI ? 90 : 25;
+    expect(median, `median frame gap ${median.toFixed(1)}ms`).toBeLessThan(medianCeiling);
+    expect(p95, `p95 frame gap ${p95.toFixed(1)}ms`).toBeLessThan(p95Ceiling);
+  });
+
+  /**
+   * Responsiveness, not just frame rate. drei eases its own scroll offset
+   * toward the raw position over `damping` seconds, and the camera plus the
+   * translated HTML both follow that eased value -- so an over-damped deck
+   * reads as "slow scrolling" even at a flawless 60fps. Jumping to the last
+   * section must resolve well inside a second.
+   */
+  test("jumping to a section settles promptly", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator("canvas")).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator("#section-overview")).toBeVisible({ timeout: 30_000 });
+    await page.waitForTimeout(1200);
+
+    const progress = page.getByRole("progressbar", { name: /progress|التقدم/i }).first();
+    const started = Date.now();
+    await page.keyboard.press("End");
+    await expect(progress).toHaveAttribute("aria-valuenow", "5", { timeout: 5_000 });
+    const elapsed = Date.now() - started;
+    expect(elapsed, `settled in ${elapsed}ms`).toBeLessThan(process.env.CI ? 3_000 : 1_200);
+  });
+
   test("a backgrounded tab stops rendering entirely", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator("canvas")).toBeVisible({ timeout: 30_000 });
