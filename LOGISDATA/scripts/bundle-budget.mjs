@@ -1,16 +1,18 @@
 #!/usr/bin/env node
 /**
- * Enforces the initial-payload budget for the cover screen.
+ * Enforces the initial-payload budget for the landing page.
  *
- * Measures exactly what a first-time visitor downloads before pressing
- * "Enter Control Room": every <script src> and <link rel=stylesheet> in
- * the prerendered HTML of `/`, plus the HTML itself, gzipped.
+ * Measures what a first-time visitor downloads to get a painted page: every
+ * <script src> and <link rel=stylesheet> in the prerendered HTML of `/`,
+ * plus the HTML itself, gzipped. The Three.js runtime is a lazy chunk that
+ * the document does not reference, so it is deliberately out of scope here;
+ * the total JavaScript ceiling is enforced by tests/e2e/performance.spec.ts.
  *
  * Usage: node scripts/bundle-budget.mjs [--url http://127.0.0.1:3100]
  */
 import { gzipSync } from "node:zlib";
 
-const BUDGET_GZIP_BYTES = Number(process.env.COVER_BUDGET_BYTES ?? 220_000);
+const BUDGET_GZIP_BYTES = Number(process.env.COVER_BUDGET_BYTES ?? 205_000);
 
 const urlArgIndex = process.argv.indexOf("--url");
 const origin = urlArgIndex === -1 ? "http://127.0.0.1:3100" : process.argv[urlArgIndex + 1];

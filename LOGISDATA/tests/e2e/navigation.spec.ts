@@ -1,8 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 
-async function enterControlRoom(page: Page) {
-  await page.goto("/");
-  await page.getByRole("button", { name: /Enter Control Room/i }).click();
+/** The deck opens directly; this just waits for the 3D chunk to mount. */
+async function enterControlRoom(page: Page, url = "/") {
+  await page.goto(url);
   await expect(page.locator("canvas")).toBeVisible({ timeout: 30_000 });
 }
 
@@ -39,9 +39,7 @@ test.describe("section navigation", () => {
   });
 
   test("a deep link opens directly on the requested section", async ({ page }) => {
-    await page.goto("/#warehouse");
-    await page.getByRole("button", { name: /Enter Control Room/i }).click();
-    await expect(page.locator("canvas")).toBeVisible({ timeout: 30_000 });
+    await enterControlRoom(page, "/#warehouse");
     await expect(page.getByRole("heading", { name: /Make every shelf accountable/i })).toBeInViewport({
       timeout: 15_000,
     });

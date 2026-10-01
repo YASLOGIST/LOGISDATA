@@ -46,12 +46,12 @@ This document is written to be **sufficient to rebuild the application from scra
                       │ PresentationShell  (client)   │
                       │  probeDevice() → DeviceProfile│
                       └───┬───────────┬───────────┬───┘
-            tier="none"   │           │ entered   │ render error
+            tier="none"   │           │ hydrated  │ render error
          ┌────────────────▼──┐  ┌─────▼────────┐  ┌▼─────────────────┐
-         │ no-WebGL notice   │  │ IntroScreen  │  │ ErrorBoundary    │
-         │ + link to /handout│  │ (CSS motion) │  │ retry / handout  │
+         │ no-WebGL notice   │  │ EngineLoader │  │ ErrorBoundary    │
+         │ + link to /handout│  │ (until probe)│  │ retry / handout  │
          └───────────────────┘  └─────┬────────┘  └──────────────────┘
-                                      │ "Enter Control Room"
+                                      │ probe says WebGL is available
                       ┌───────────────▼──────────────────────────────┐
                       │ next/dynamic → Presentation.tsx   (ssr:false)│
                       │  ── the ONLY module that imports three ──    │
@@ -67,7 +67,11 @@ This document is written to be **sufficient to rebuild the application from scra
 └─────────────────────────┘                            └──────────────────────────┘
 ```
 
-**CONFIRMED.** `Presentation.tsx` is the sole importer of `three`, `@react-three/fiber`, `@react-three/drei` and `framer-motion` on the `/` route, and it is loaded through `next/dynamic` with `ssr: false`. Verified by `tests/e2e/smoke.spec.ts`, which asserts that no three.js chunk is requested before the entry button is pressed.
+**CONFIRMED.** `Presentation.tsx` is the sole importer of `three`, `@react-three/fiber`, `@react-three/drei` and `framer-motion` on the `/` route, and it is loaded through `next/dynamic` with `ssr: false`.
+
+There is **no cover screen**: the deck opens directly in the control room. The shell still holds the loader until the capability probe has run, so a device without WebGL is shown the text fallback without ever requesting the 1 MB 3D chunk. `tests/e2e/smoke.spec.ts` asserts that the server-rendered document stays a small static shell (< 40 kB, no `WebGLRenderer`), and `tests/e2e/performance.spec.ts` enforces the total JavaScript ceiling for the route.
+
+Because the deck is client-rendered, `layout.tsx` carries a bilingual `<noscript>` block linking to `/handout`; it is the only path to the content with scripting disabled, a role the server-rendered cover used to fill.
 
 ### 2.1 The scroll ⇄ scene contract
 
@@ -185,7 +189,7 @@ The application itself never queries the database; it exists so the deck can be 
 
 | Route | Rendering | Contract |
 |---|---|---|
-| `/` | static prerender | Cover → deferred 3D control room. Hash deep links `#overview #audit #demand #routes #warehouse`. |
+| `/` | static prerender | Static shell → deferred 3D control room, entered directly. Hash deep links `#overview #audit #demand #routes #warehouse`. |
 | `/handout` | static prerender | Complete audit as prose: 1 `h1`, 5 `h2`, 3 data tables with `<caption>` and `th[scope=row]`, a 4-item warehouse findings list, a TOC `nav[aria-label="Presentation sections"]` with 5 links, a back link to `/`, and print styles. |
 | `/api/health` | dynamic | `GET` → `200 {ok, service:"logisdata-control-room", version, database, uptimeSeconds, timestamp}` with `cache-control: no-store`. `HEAD` → `204`. |
 | `/robots.txt` | static | Allows all, disallows `/api/`, advertises the sitemap. |
@@ -258,7 +262,7 @@ Cross-Origin-Resource-Policy: same-origin
 ```text
 npm run typecheck ──▶ tsc --noEmit (strict, includes tests)
 npm run lint      ──▶ eslint (next/core-web-vitals, react-hooks)
-npm run test      ──▶ vitest · 11 files · 160 tests · jsdom
+npm run test      ──▶ vitest · 11 files · 161 tests · jsdom
                       └ coverage thresholds: 85% lines, 80% stmt/fn/branch
 npm run test:e2e  ──▶ playwright · 3 projects
                       ├ desktop-chromium : all specs

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { IntroScreen } from "@/components/IntroScreen";
+import { IntroScreen } from "@/components/archived/IntroScreen";
 import { HandoutView } from "@/components/HandoutView";
 import { MetricCounter } from "@/components/MetricCounter";
 import { KeyboardHelp } from "@/components/ui/KeyboardHelp";
@@ -38,7 +38,10 @@ afterEach(() => {
 
 const withPreferences = (node: React.ReactNode) => <PreferencesProvider>{node}</PreferencesProvider>;
 
-describe("IntroScreen", () => {
+// The cover screen was removed from the product (the site opens straight
+// into the control room) but the component is archived rather than deleted,
+// so these tests keep it in working order in case it is ever restored.
+describe("IntroScreen (archived cover screen)", () => {
   it("renders the cover with a single h1 and an entry action", () => {
     render(withPreferences(<IntroScreen onEnter={vi.fn()} />));
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
@@ -167,13 +170,16 @@ describe("Handout (no-WebGL briefing)", () => {
 });
 
 describe("PresentationShell", () => {
-  it("shows the cover first, then the no-WebGL notice when WebGL is missing", async () => {
+  it("opens directly in the deck with no cover screen to click through", async () => {
+    const { PresentationShell } = await import("@/components/PresentationShell");
+    render(<PresentationShell />);
+    expect(screen.queryByRole("button", { name: /Enter Control Room/i })).not.toBeInTheDocument();
+  });
+
+  it("shows the no-WebGL notice instead of a blank canvas", async () => {
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
     const { PresentationShell } = await import("@/components/PresentationShell");
     render(<PresentationShell />);
-
-    expect(screen.getByRole("button", { name: /Enter Control Room/i })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: /Enter Control Room/i }));
 
     expect(await screen.findByText(/3D rendering is unavailable/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /text briefing/i })).toHaveAttribute("href", "/handout");

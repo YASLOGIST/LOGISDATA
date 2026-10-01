@@ -23,7 +23,6 @@ test.describe("accessibility", () => {
 
   test("the control room has no WCAG 2.1 AA violations outside the canvas", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: /Enter Control Room/i }).click();
     await expect(page.locator("canvas")).toBeVisible({ timeout: 30_000 });
     const results = await new AxeBuilder({ page })
       .withTags(WCAG)
@@ -58,7 +57,6 @@ test.describe("accessibility", () => {
   test("reduced-motion visitors still get a complete, static deck", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
-    await page.getByRole("button", { name: /Enter Control Room/i }).click();
     await expect(page.locator("canvas")).toBeVisible({ timeout: 30_000 });
     // Metric counters must be at their final value immediately, not at 0.
     await expect(page.locator(".metric-counter-value").first()).not.toHaveText(/^\$?0(\.0)?/);
@@ -66,7 +64,6 @@ test.describe("accessibility", () => {
 
   test("the active section is announced to assistive technology", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: /Enter Control Room/i }).click();
     await expect(page.locator("canvas")).toBeVisible({ timeout: 30_000 });
     const status = page.locator("[role='status'][aria-live='polite']").first();
     await expect(status).toContainText("Hidden cost");

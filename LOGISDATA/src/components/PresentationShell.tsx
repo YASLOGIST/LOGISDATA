@@ -4,7 +4,6 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Component, useCallback, useState, type ErrorInfo, type ReactNode } from "react";
 import { FileText, RotateCcw } from "lucide-react";
-import { IntroScreen } from "@/components/IntroScreen";
 import { PreferencesProvider, usePreferences } from "@/components/providers/PreferencesProvider";
 import { t } from "@/lib/i18n";
 import type { Language } from "@/lib/types";
@@ -108,14 +107,15 @@ function NoWebglNotice() {
 
 function ShellBody() {
   const { language, device, hydrated } = usePreferences();
-  const [entered, setEntered] = useState(false);
   const [generation, setGeneration] = useState(0);
   const reset = useCallback(() => setGeneration((value) => value + 1), []);
 
-  if (!entered) return <IntroScreen onEnter={() => setEntered(true)} />;
-  // `hydrated` guards against rendering the fallback before the capability
-  // probe has run on the client.
-  if (hydrated && device.tier === "none") return <NoWebglNotice />;
+  // There is no cover screen: the deck opens straight into the control room.
+  // Hold the loader until the capability probe has run, so a device without
+  // WebGL never starts downloading the Three.js chunk only to be shown the
+  // text fallback a moment later.
+  if (!hydrated) return <EngineLoader />;
+  if (device.tier === "none") return <NoWebglNotice />;
 
   return (
     <ExperienceBoundary key={generation} language={language} onReset={reset}>
@@ -124,7 +124,14 @@ function ShellBody() {
   );
 }
 
-/** Lightweight entry shell: the Three.js runtime is downloaded only after intent. */
+/**
+ * Entry shell.
+ *
+ * The control room renders immediately -- there is no cover screen to click
+ * through. The Three.js runtime is still a separate `next/dynamic` chunk, so
+ * the static HTML and the loading state paint before it arrives, and devices
+ * that fail the WebGL probe never download it at all.
+ */
 export function PresentationShell() {
   return (
     <PreferencesProvider>

@@ -5,9 +5,18 @@ import { expect, test } from "@playwright/test";
  * regression that makes the deck heavier or janky fails CI.
  */
 const BUDGET = {
-  /** Bytes of JavaScript transferred before the user enters the deck. */
-  coverJsBytes: 420_000,
-  /** Cumulative Layout Shift on the cover screen. */
+  /**
+   * Bytes of JavaScript transferred to render the landing page.
+   *
+   * There is no longer a cover screen to gate the deck, so this now includes
+   * the Three.js chunk. The ceiling is grounded rather than guessed: the
+   * entire application ships 511,696 B of gzipped JavaScript across every
+   * route, so a single route can never legitimately exceed that. 650,000 B
+   * leaves room for transfer overhead while still failing loudly if a heavy
+   * dependency is added.
+   */
+  initialJsBytes: 650_000,
+  /** Cumulative Layout Shift on the landing page. */
   cls: 0.1,
   /**
    * Minimum sustained frames per second in the control room.
@@ -24,7 +33,7 @@ const BUDGET = {
 };
 
 test.describe("performance budget", () => {
-  test("the cover screen stays under the initial JavaScript budget", async ({ page }) => {
+  test("the landing page stays under the initial JavaScript budget", async ({ page }) => {
     let transferred = 0;
     page.on("response", async (response) => {
       if (!/\.js(\?|$)/.test(response.url())) return;
@@ -32,10 +41,10 @@ test.describe("performance budget", () => {
       transferred += Number.isFinite(length) ? length : 0;
     });
     await page.goto("/", { waitUntil: "networkidle" });
-    expect(transferred, `cover JS payload ${transferred} bytes`).toBeLessThan(BUDGET.coverJsBytes);
+    expect(transferred, `initial JS payload ${transferred} bytes`).toBeLessThan(BUDGET.initialJsBytes);
   });
 
-  test("the cover screen does not shift layout", async ({ page }) => {
+  test("the landing page does not shift layout", async ({ page }) => {
     await page.goto("/", { waitUntil: "networkidle" });
     const cls = await page.evaluate(
       () =>
@@ -54,7 +63,6 @@ test.describe("performance budget", () => {
 
   test("the deck holds an interactive frame rate while scrolling", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: /Enter Control Room/i }).click();
     await expect(page.locator("canvas")).toBeVisible({ timeout: 30_000 });
     // Let the first frames settle before sampling.
     await page.waitForTimeout(1200);
@@ -77,7 +85,6 @@ test.describe("performance budget", () => {
 
   test("a backgrounded tab stops rendering entirely", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: /Enter Control Room/i }).click();
     await expect(page.locator("canvas")).toBeVisible({ timeout: 30_000 });
 
     const framesWhileHidden = await page.evaluate(async () => {

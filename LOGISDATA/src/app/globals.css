@@ -2160,3 +2160,36 @@ html[data-theme="light"] {
   .intro-enter,
   .intro-rise { animation: none !important; opacity: 1; transform: none; }
 }
+
+/* ---------------------------------------------------------------- */
+/* No-JavaScript notice. The deck is client-rendered, so this is the  */
+/* only route to the content when scripting is disabled.              */
+/* ---------------------------------------------------------------- */
+
+.noscript-notice {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: var(--bg);
+  color: var(--text);
+  text-align: center;
+}
+
+.noscript-notice p { max-width: 46ch; margin: 0; font-size: 0.95rem; line-height: 1.6; }
+
+.noscript-notice a {
+  padding: 11px 20px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: var(--cyan);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.noscript-notice a:hover { background: var(--surface-soft); }

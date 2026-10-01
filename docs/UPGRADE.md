@@ -52,6 +52,7 @@ Fixed by making one function the single source of truth (`pagePositionFromOffset
 
 ### New capabilities (requirement: ≥3, one of them visual)
 
+0. **The cover screen was removed** (owner's request, after the measurements above). The site now opens directly in the control room. Nothing was lost: the AAST lockup, the presenter credit and the registration number are all carried by the hero section, the language and theme toggles live in the deck's control cluster, and the link to the text briefing moved there too. The component is archived at `src/components/archived/IntroScreen.tsx` rather than deleted, with its tests still running, so the cover can be restored. Two consequences were handled: the shell now holds its loader until the WebGL probe has run (so a device without WebGL still never downloads the 3D chunk), and `layout.tsx` gained a bilingual `<noscript>` link to `/handout`, a role the server-rendered cover used to fill.
 1. **`/handout` — the deck as a readable document.** A statically prerendered, printable, screen-reader-first version of the entire audit: three data tables with captions and row headers, the warehouse findings, a table of contents and print styles. This is also what no-WebGL and reduced-motion visitors are pointed to. It makes the content crawlable and citable, which a canvas never is.
 2. **CSV export of every dataset on screen.** RFC 4180 output (CRLF, correct quoting), localised, date-stamped filenames. An audit deck whose numbers cannot leave the slide is not an audit deck.
 3. **Full keyboard control and deep linking.** Arrows / Page / Space / Home / End / `1`–`5` / `T` / `L` / `?`, a native `<dialog>` shortcut sheet, and bidirectional hash deep links so any section can be shared.
@@ -72,17 +73,17 @@ Fixed by making one function the single source of truth (`pagePositionFromOffset
 
 ## 3. Measured results — baseline vs v3
 
-### Initial payload (cover screen, gzipped, measured over HTTP)
+### Initial payload (landing page, gzipped, measured over HTTP)
 
 | | Baseline `9ae5a8a` | v3 | Δ |
 |---|---|---|---|
-| Cover screen total | **234,275 B** | **213,016 B** | **−21,259 B (−9.1%)** |
+| Landing page total | **234,275 B** | **198,927 B** | **−35,348 B (−15.1%)** |
 
-Measured with `scripts/bundle-budget.mjs` against `next start` for each revision: the prerendered HTML plus every `<script src>` and stylesheet it references, each gzipped.
+Measured with `scripts/bundle-budget.mjs` against `next start` for each revision: the prerendered HTML plus every `<script src>` and stylesheet it references, each gzipped. (The Three.js chunk is lazy and not referenced by the document; the total JavaScript ceiling for the route is enforced separately in `tests/e2e/performance.spec.ts`.)
 
-This is a reduction **despite** v3 adding a theme bootstrap, a language toggle on the cover, a second CTA, the preference store and the device prober. The saving comes from removing `framer-motion` from the cover path: the cover's two fades are now CSS keyframes, so the ~40 KB gzipped animation runtime is deferred into the control-room chunk with three.js, where it was always going to be loaded anyway.
+Two changes produced this. First, `framer-motion` was taken off the landing path (its two fades are CSS keyframes now), deferring the ~40 KB gzipped animation runtime into the control-room chunk where it was going to be loaded anyway. Second, the cover screen was removed entirely at the owner's request, which took its logo, icon set and credit markup out of the initial graph.
 
-Of the remaining 212,779 B, **≈148,000 B is the Next.js 16 + React 19 framework floor** (three framework chunks). Application code, icons and CSS account for ≈32,000 B. The enforced ceiling is 220,000 B, which leaves a deliberately small regression allowance.
+Of the remaining 198,927 B, **≈148,000 B is the Next.js 16 + React 19 framework floor** (three framework chunks). Application code, icons and CSS account for ≈51,000 B. The enforced ceiling is 205,000 B, a deliberately small regression allowance.
 
 ### Total built JavaScript
 
@@ -119,11 +120,11 @@ This is the same *class* of bug as finding 13, in a different place, and it surv
 
 | | Baseline | v3 |
 |---|---|---|
-| Unit/component tests | 0 | **160 passing** |
-| Statement coverage | 0% | **85.46%** |
-| Branch coverage | 0% | **82.88%** |
-| Function coverage | 0% | **86.30%** |
-| Line coverage | 0% | **89.66%** |
+| Unit/component tests | 0 | **161 passing** |
+| Statement coverage | 0% | **85.17%** |
+| Branch coverage | 0% | **82.55%** |
+| Function coverage | 0% | **86.20%** |
+| Line coverage | 0% | **89.63%** |
 | E2E / a11y / perf specs | 0 | 4 specs × 3 projects (58 cases) |
 | CI jobs | 0 | 4 |
 | Security headers | 0 | 10 |
@@ -136,7 +137,7 @@ This is the same *class* of bug as finding 13, in a different place, and it surv
 
 `tests/e2e/performance.spec.ts` fails the build on any of:
 
-- cover-screen JavaScript transferred > 420,000 B (uncompressed transfer measurement)
+- total JavaScript transferred for the landing route > 650,000 B (the whole application ships 511,696 B gzipped across *every* route, so this cannot be exceeded legitimately)
 - cumulative layout shift ≥ 0.1
 - sustained frame rate ≤ 30 fps in the control room
 - any frame rendered while the tab is hidden

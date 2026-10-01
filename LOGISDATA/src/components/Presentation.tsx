@@ -3,7 +3,8 @@
 import { Canvas } from "@react-three/fiber";
 import { AdaptiveDpr, Html, Preload, Scroll, ScrollControls, useScroll } from "@react-three/drei";
 import { motion } from "framer-motion";
-import { ChevronDown, Keyboard, Languages, Moon, Sun } from "lucide-react";
+import Link from "next/link";
+import { ChevronDown, FileText, Keyboard, Languages, Moon, Sun } from "lucide-react";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { presentationCopy } from "@/lib/data";
 import { t, text } from "@/lib/i18n";
@@ -251,6 +252,10 @@ export function Presentation() {
         </nav>
 
         <div className="navigation-actions">
+          <Link className="control-button" href="/handout" prefetch={false}>
+            <FileText size={15} aria-hidden="true" />
+            <span>{t("openHandout", language)}</span>
+          </Link>
           <button
             className="control-button"
             type="button"

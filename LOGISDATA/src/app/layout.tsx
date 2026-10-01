@@ -80,7 +80,28 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: PREFERENCE_BOOTSTRAP }} />
       </head>
-      <body>{children}</body>
+      <body>
+        {/*
+          The control room is client-rendered (WebGL), so without JavaScript
+          there is nothing to show. Previously the server-rendered cover
+          screen carried the link to the text briefing; now that the deck
+          opens directly, this is what keeps the content reachable with
+          scripting disabled.
+        */}
+        <noscript>
+          <div className="noscript-notice">
+            <p>
+              The interactive control room needs JavaScript and WebGL. The complete audit is
+              available as a text briefing.
+            </p>
+            <p lang="ar" dir="rtl">
+              تحتاج غرفة التحكم التفاعلية إلى جافاسكريبت و WebGL. التدقيق الكامل متاح كملخص نصي.
+            </p>
+            <a href="/handout">Open the text briefing</a>
+          </div>
+        </noscript>
+        {children}
+      </body>
     </html>
   );
 }

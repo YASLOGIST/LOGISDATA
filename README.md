@@ -17,7 +17,7 @@ No configuration, no database and no API keys are required to run it.
 | **Type** | Client-rendered presentation web app (Next.js App Router + React Three Fiber) |
 | **Audience** | Executive / academic audience, presented live and read asynchronously |
 | **Languages** | English and Arabic, with native RTL layout and locale-correct numerals |
-| **Routes** | `/` interactive control room · `/handout` accessible text briefing · `/api/health` |
+| **Routes** | `/` interactive control room (opens directly, no cover screen) · `/handout` accessible text briefing · `/api/health` |
 | **Data** | Static, illustrative figures — see [Data policy](#data-policy) |
 
 ## Architecture
@@ -30,12 +30,13 @@ Next.js App Router
 │   ├── api/health            liveness + optional database readiness
 │   └── robots | sitemap | manifest
 ├── components/
-│   ├── PresentationShell     capability probe, error boundary, entry gate
+│   ├── PresentationShell     capability probe, error boundary, engine loader
 │   ├── Presentation          navigation, deep links, keyboard control, canvas host
 │   ├── providers/            language · theme · device-tier context
 │   ├── sections/             accessible HTML analytics and audit narratives
 │   ├── three/                synchronized React Three Fiber models (one canvas)
-│   └── ui/                   GlassCard · KeyboardHelp · DatasetExport
+│   ├── ui/                   GlassCard · KeyboardHelp · DatasetExport
+│   └── archived/             IntroScreen - the retired cover screen, kept for reference
 ├── lib/
 │   ├── data                  typed bilingual domain data
 │   ├── metrics               derived analytics selectors (computed once)
@@ -49,7 +50,7 @@ Next.js App Router
 └── db/                       lazy, pooled, singleton PostgreSQL/Drizzle adapter
 ```
 
-The Three.js runtime is downloaded **only after the visitor presses "Enter Control Room"**. All five scenes share one WebGL canvas and one camera rig; scroll position drives camera, scene scale, per-scene animation and HTML label opacity from the same mapping in `lib/sections` + `lib/sceneFocus`.
+The deck opens straight into the control room. The Three.js runtime is still a separate `next/dynamic` chunk, so the static shell paints first and a device that fails the WebGL probe never downloads it at all. All five scenes share one WebGL canvas and one camera rig; scroll position drives camera, scene scale, per-scene animation and HTML label opacity from the same mapping in `lib/sections` + `lib/sceneFocus`.
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for diagrams and the behavioural specification, and [`docs/UPGRADE.md`](docs/UPGRADE.md) for the v2 → v3 audit and changelog.
 
@@ -63,7 +64,8 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for diagrams and the behaviou
 - `/handout`: the complete audit as printable, crawlable, screen-reader-first prose
 
 **Adaptive quality**
-- WebGL capability probe with a graceful text fallback instead of a blank canvas
+- WebGL capability probe, run before the 3D chunk is requested, with a graceful text fallback instead of a blank canvas
+- A `<noscript>` route to the text briefing, so the content survives with scripting disabled
 - Device tiering (`high` / `medium` / `low`) drives pixel-ratio clamp, antialiasing and the ambient particle budget
 - `prefers-reduced-motion` switches the renderer to on-demand frames and removes all ambient motion
 - Rendering stops completely while the tab is backgrounded

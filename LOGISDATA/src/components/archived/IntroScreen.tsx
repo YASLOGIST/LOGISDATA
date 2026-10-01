@@ -1,5 +1,19 @@
 "use client";
 
+/* ------------------------------------------------------------------ *
+ * ARCHIVED -- not rendered anywhere.
+ *
+ * This was the cover screen that gated entry to the deck (AAST lockup,
+ * presenter credit, "Enter Control Room"). It was removed on request so
+ * the site opens directly in the control room. Kept rather than deleted
+ * so the cover can be restored: render <IntroScreen onEnter={...} /> from
+ * PresentationShell behind an `entered` flag again.
+ *
+ * Nothing was lost by removing it -- the AAST logo, the presenter name and
+ * the registration number are all carried by HeroSection, and the link to
+ * /handout now lives in the deck's control cluster.
+ * ------------------------------------------------------------------ */
+
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, FileText, Languages, Moon, ShieldCheck, Sun } from "lucide-react";

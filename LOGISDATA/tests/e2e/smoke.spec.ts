@@ -1,20 +1,21 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("control room entry", () => {
-  test("cover screen loads and defers the 3D engine until intent", async ({ page }) => {
-    const threeRequests: string[] = [];
-    page.on("request", (request) => {
-      if (/three|drei|fiber/i.test(request.url())) threeRequests.push(request.url());
-    });
-
+  test("the deck opens directly, with no cover screen to click through", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await expect(page.getByRole("button", { name: /Enter Control Room/i })).toBeVisible();
-    // The intro must not pull the WebGL runtime.
-    expect(threeRequests, "3D runtime downloaded before the user entered").toHaveLength(0);
+    await expect(page.getByRole("button", { name: /Enter Control Room/i })).toHaveCount(0);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible({ timeout: 30_000 });
   });
 
-  test("entering the control room renders the canvas and the first section", async ({ page }) => {
+  test("the 3D runtime stays a deferred chunk, not part of the initial document", async ({ request }) => {
+    const html = await (await request.get("/")).text();
+    // The document is the static shell. If Three.js ever gets pulled into the
+    // server-rendered payload this grows by an order of magnitude.
+    expect(html).not.toContain("WebGLRenderer");
+    expect(html.length, `initial document ${html.length} bytes`).toBeLessThan(40_000);
+  });
+
+  test("the control room renders the canvas and the first section", async ({ page }) => {
     await page.goto("/");
 
     // The product contract is "every device gets the content", not "every
@@ -32,17 +33,16 @@ test.describe("control room entry", () => {
       return;
     }
 
-    await page.getByRole("button", { name: /Enter Control Room/i }).click();
     await expect(page.locator("canvas")).toBeVisible({ timeout: 30_000 });
     await expect(page.getByRole("heading", { level: 1 })).toContainText(/Data leakage/i);
     await expect(page.getByRole("navigation", { name: /Presentation sections/i })).toBeVisible();
   });
 
-  test("the cover and the briefing are reachable without JavaScript errors", async ({ page }) => {
+  test("the deck and the briefing are reachable without JavaScript errors", async ({ page }) => {
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto("/");
-    await page.getByRole("link", { name: /text briefing/i }).click();
+    await page.getByRole("link", { name: /text briefing/i }).first().click();
     await expect(page).toHaveURL(/\/handout$/);
     expect(errors).toEqual([]);
   });
