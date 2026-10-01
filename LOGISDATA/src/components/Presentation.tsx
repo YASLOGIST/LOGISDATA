@@ -33,13 +33,15 @@ const EDITABLE = "input, textarea, select, [contenteditable='true']";
 
 interface ScrollBridgeProps {
   onReady: (element: HTMLDivElement) => void;
+  onCanvasReady: () => void;
 }
 
-function ScrollBridge({ onReady }: ScrollBridgeProps) {
+function ScrollBridge({ onReady, onCanvasReady }: ScrollBridgeProps) {
   const scroll = useScroll();
   useEffect(() => {
     onReady(scroll.el);
-  }, [onReady, scroll.el]);
+    onCanvasReady();
+  }, [onReady, onCanvasReady, scroll.el]);
   return null;
 }
 
@@ -66,6 +68,8 @@ export function Presentation() {
   );
   const [pageVisible, setPageVisible] = useState(true);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [canvasReady, setCanvasReady] = useState(false);
+  const markCanvasReady = useCallback(() => setCanvasReady(true), []);
   const scrollElement = useRef<HTMLDivElement | null>(null);
   const scrollListener = useRef<(() => void) | null>(null);
   const pendingSection = useRef<number | null>(
@@ -280,6 +284,10 @@ export function Presentation() {
               key={section.slug}
               type="button"
               className={`section-nav-button ${activeSection === section.index ? "nav-active" : ""}`}
+              // The text label is hidden below 1024px, and `nav-index` is
+              // aria-hidden, so without this the accessible name would be
+              // empty on tablets and phones.
+              aria-label={text(section.label, language)}
               onClick={() => goToSection(section.index)}
               aria-current={activeSection === section.index ? "step" : undefined}
             >
@@ -370,12 +378,22 @@ export function Presentation() {
                 overscrollBehaviorY: "contain",
               }}
             >
-              <ScrollBridge onReady={onScrollReady} />
+              <ScrollBridge onReady={onScrollReady} onCanvasReady={markCanvasReady} />
               <IndustrialScene
                 language={language}
                 theme={theme}
                 device={device}
               />
+              {/*
+                drei's `Scroll html` renders our markup into a *second* React
+                root and bridges the R3F context into it. Mounting it in the
+                same commit as the Canvas means that bridged value can still
+                be empty when the second root first renders, and every R3F
+                hook inside it throws "Hooks can only be used within the
+                Canvas component". Waiting for the Canvas to commit gives the
+                bridge something real to carry.
+              */}
+              {canvasReady ? (
               <Scroll html style={{ width: "100%" }}>
                 <main
                   id="presentation-content"
@@ -390,6 +408,7 @@ export function Presentation() {
                   <WarehouseSection language={language} active={activeSection === 4} reduced={reduced} />
                 </main>
               </Scroll>
+              ) : null}
             </ScrollControls>
             <Preload all />
           </Suspense>

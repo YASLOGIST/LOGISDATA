@@ -2193,3 +2193,24 @@ html[data-theme="light"] {
 }
 
 .noscript-notice a:hover { background: var(--surface-soft); }
+
+/* ---------------------------------------------------------------- */
+/* Narrow viewports keep the section navigation.                     */
+/* It used to be `display: none` below 860px, which removed it from  */
+/* the accessibility tree and left phone users with no way to jump   */
+/* between sections. The bar wraps instead, and the nav becomes a    */
+/* row of numbered pills (each still named via aria-label).          */
+/* ---------------------------------------------------------------- */
+
+@media (max-width: 860px) {
+  .top-navigation { flex-wrap: wrap; row-gap: 8px; }
+  .section-nav {
+    display: flex;
+    order: 3;
+    gap: 6px;
+    justify-content: space-between;
+    width: 100%;
+  }
+  .section-nav-button { flex: 1; justify-content: center; min-width: 0; padding: 7px 4px; }
+  .section-nav-button span:last-child { display: none; }
+}
