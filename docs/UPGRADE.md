@@ -76,7 +76,7 @@ Fixed by making one function the single source of truth (`pagePositionFromOffset
 
 | | Baseline `9ae5a8a` | v3 | Δ |
 |---|---|---|---|
-| Cover screen total | **234,275 B** | **212,779 B** | **−21,496 B (−9.2%)** |
+| Cover screen total | **234,275 B** | **213,016 B** | **−21,259 B (−9.1%)** |
 
 Measured with `scripts/bundle-budget.mjs` against `next start` for each revision: the prerendered HTML plus every `<script src>` and stylesheet it references, each gzipped.
 
@@ -95,16 +95,36 @@ Of the remaining 212,779 B, **≈148,000 B is the Next.js 16 + React 19 framewor
 
 Total output grew ~4%, which is the correct trade: it buys four new routes, the handout, export, keyboard control, the particle field and the capability fallbacks — none of which the cover visitor downloads.
 
+### 3.1 What running the suite actually found
+
+The Playwright suite could not be executed in the development sandbox (see §6), so its first real execution was in CI. That run is the most valuable single result in this upgrade: **it found two defects that no unit test could reach.**
+
+| CI round | Result | What it exposed |
+|---|---|---|
+| 1 | 47 passed, 13 failed | Both bugs below, plus three assertions that encoded wrong expectations |
+| 2 | 50 passed, 8 failed, 3 flaky | Scroll targeting fixed; contrast violations down from 584 to 146 |
+| 3 | pending — the sandbox's GitHub token expired before it could be pushed | — |
+
+**Defect A — section jumps landed short.** `goToSection` scrolled to `index * clientHeight`, which is only correct if the scrollable distance is exactly `pages * clientHeight`. drei appends its fill element alongside a sticky content wrapper, so the real range is larger: clicking "Route intelligence" (index 3) consistently stopped on Demand (index 2). Targets are now derived from the element's measured range — the exact inverse of drei's own `scrollTop / (scrollHeight - clientHeight)` — and the three scroll-geometry functions moved into `lib/sections.ts` as pure, unit-tested code (7 new tests).
+
+This is the same *class* of bug as finding 13, in a different place, and it survived the entire analysis phase. It is the clearest argument in this report for spending effort on browser-level tests rather than more unit tests of pure functions.
+
+**Defect B — the light theme failed WCAG 2.1 AA.** The light palette overrode text and surface tokens but kept the dark theme's bright accents. `#7dd3fc` on `#f8fafc` measures **1.59:1** against a 4.5:1 requirement. axe reported colour-contrast violations throughout the handout in light mode — and because the deck honours `prefers-color-scheme`, any visitor on a light-mode device saw it. Light now has its own accent set (`#8a5304`, `#0f766e`, `#0369a1`, `#b91c1c`) and a darker `--text-muted` (`#4c6271`), all computed against the worst-case tinted surface rather than against `--bg`.
+
+**Also fixed, prompted by the same run:** the active section was reported from `IndustrialScene`'s `useFrame`, coupling the URL hash, the nav highlight and the screen-reader announcement to GPU frames — so under `frameloop="demand"` or a hidden tab the announced state froze mid-travel. It is now derived from the scroll container's native `scroll` event: exact, immediate and independent of rendering.
+
+**Three assertions were wrong, not the app**, and were corrected rather than the code: the theme tests hard-coded "light" even though the deck honours `prefers-color-scheme`; the mobile smoke test assumed a canvas, when a GPU-less runner failing the WebGL probe and showing the documented fallback is correct behaviour; and the fps floor is now CI-aware, because CI has no GPU and SwiftShader software rasterisation cannot be held to a hardware budget.
+
 ### Quality gates
 
 | | Baseline | v3 |
 |---|---|---|
-| Unit/component tests | 0 | **153 passing** |
-| Statement coverage | 0% | **85.39%** |
-| Branch coverage | 0% | **82.96%** |
-| Function coverage | 0% | **86.01%** |
-| Line coverage | 0% | **89.47%** |
-| E2E / a11y / perf specs | 0 | 4 specs × 3 projects |
+| Unit/component tests | 0 | **160 passing** |
+| Statement coverage | 0% | **85.46%** |
+| Branch coverage | 0% | **82.88%** |
+| Function coverage | 0% | **86.30%** |
+| Line coverage | 0% | **89.66%** |
+| E2E / a11y / perf specs | 0 | 4 specs × 3 projects (58 cases) |
 | CI jobs | 0 | 4 |
 | Security headers | 0 | 10 |
 | `tsc --noEmit` | clean | clean |
@@ -142,14 +162,14 @@ npm run test:e2e
 
 ## 5. Unknowns and residual risk
 
-- **INFERRED — PROBABLE.** The e2e suite has never executed in this environment (see §6); its assertions were written against the running production server and the HTTP-level ones were verified by hand, but the browser-level ones are unproven until CI runs them.
+- **CONFIRMED.** The e2e suite cannot run in this sandbox (see §6), but it *was* executed in CI, twice, and the results are recorded in §3.1. A third round covering the latest fixes is pending a working GitHub connection.
 - **CONFIRMED.** `script-src 'unsafe-inline'` is still required; the reasoning and the compensating controls are in `docs/ARCHITECTURE.md` §6.
 - **INFERRED — PROBABLE.** Arabic copy is presentation-grade but unreviewed by a domain expert.
 - **CONFIRMED.** The figures are illustrative. Nothing in this repository should be used for an operational decision without substituting audited source data.
 
 ## 6. Backlog — only items that were technically impossible here
 
-1. **Execute the Playwright suite locally.** *Reason:* browser binaries cannot be installed in this sandbox. `npx playwright install --with-deps chromium` fails because the apt package `fonts-freefont-ttf` has no installation candidate in this image, and `npx playwright install chromium` fails with `ECONNRESET` / "Client network socket disconnected before secure TLS connection was established" from `cdn.playwright.dev`. No system Chrome or Chromium binary exists either. The suite and its CI job are committed and will run on the first push.
+1. **Execute the Playwright suite locally.** *Reason:* browser binaries cannot be installed in this sandbox. (It has, however, been executed in CI — see §3.1.) `npx playwright install --with-deps chromium` fails because the apt package `fonts-freefont-ttf` has no installation candidate in this image, and `npx playwright install chromium` fails with `ECONNRESET` / "Client network socket disconnected before secure TLS connection was established" from `cdn.playwright.dev`. No system Chrome or Chromium binary exists either. The suite and its CI job are committed and will run on the first push.
 2. **Real-device performance numbers (fps, LCP, INP on actual hardware).** *Reason:* same — no browser, and a headless container has no GPU, so any figure produced here would be fabricated. The budget is instead enforced as an assertion that CI must satisfy.
 3. **Lighthouse / PageSpeed scores.** *Reason:* requires Chrome; see above.
 4. **Native-speaker review of the Arabic copy.** *Reason:* requires a human reviewer, not a code change.

@@ -21,7 +21,7 @@ This document is written to be **sufficient to rebuild the application from scra
 | Data layer | drizzle-orm + `pg`, lazily instantiated and entirely optional |
 | Language | TypeScript 5.9, `strict` |
 | Runtime floor | Node.js 22 (`engines`, `.nvmrc`) |
-| Source size | 4,270 lines under `src/`, 1,545 lines under `tests/` |
+| Source size | ~4,300 lines under `src/`, ~1,700 lines under `tests/` |
 
 **Definition of success** (the measurable contract this build is held to):
 
@@ -103,6 +103,10 @@ Three consumers read the same mapping each frame:
 1. the camera rig (position + look-at target, critically damped),
 2. each child scene (`focus` prop ⇒ scale, emissive intensity, per-scene animation phase),
 3. the HTML labels, via `applyLabelFocus(node, focus)` writing `opacity` / `visibility` / `aria-hidden` imperatively.
+
+**CONFIRMED.** React state — the URL hash, the nav highlight, the live-region announcement — is deliberately *not* one of them. It is derived from the scroll container's native `scroll` event via `sectionFromScrollTop`, so it stays exact when the render loop is throttled (`frameloop="demand"`) or stopped (hidden tab). Driving it from `useFrame` previously froze the announced section mid-travel.
+
+Programmatic jumps use the inverse, `scrollTopForSection`, which measures the element's real scroll range rather than assuming `pages * clientHeight` — drei appends its fill element alongside a sticky content wrapper, so the two differ and the naive form lands short of the section. Both functions live in `lib/sections.ts` and are unit-tested.
 
 `applyLabelFocus` is write-guarded on `node.dataset.focus` rather than on `style.opacity`, because the CSSOM re-serialises `"0.500"` to `"0.5"` and the naive comparison never matched — the original guard was a no-op on every frame. **CONFIRMED** by `tests/unit/sceneFocus.test.ts`.
 
@@ -254,7 +258,7 @@ Cross-Origin-Resource-Policy: same-origin
 ```text
 npm run typecheck ──▶ tsc --noEmit (strict, includes tests)
 npm run lint      ──▶ eslint (next/core-web-vitals, react-hooks)
-npm run test      ──▶ vitest · 11 files · 153 tests · jsdom
+npm run test      ──▶ vitest · 11 files · 160 tests · jsdom
                       └ coverage thresholds: 85% lines, 80% stmt/fn/branch
 npm run test:e2e  ──▶ playwright · 3 projects
                       ├ desktop-chromium : all specs
