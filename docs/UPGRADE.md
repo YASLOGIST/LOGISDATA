@@ -52,7 +52,7 @@ Fixed by making one function the single source of truth (`pagePositionFromOffset
 
 ### New capabilities (requirement: ≥3, one of them visual)
 
-0. **The cover screen was removed** (owner's request, after the measurements above). The site now opens directly in the control room. Nothing was lost: the AAST lockup, the presenter credit and the registration number are all carried by the hero section, the language and theme toggles live in the deck's control cluster, and the link to the text briefing moved there too. The component is archived at `src/components/archived/IntroScreen.tsx` rather than deleted, with its tests still running, so the cover can be restored. Two consequences were handled: the shell now holds its loader until the WebGL probe has run (so a device without WebGL still never downloads the 3D chunk), and `layout.tsx` gained a bilingual `<noscript>` link to `/handout`, a role the server-rendered cover used to fill.
+0. **The cover screen was removed** (owner's request, after the measurements above). The site now opens directly in the control room. Nothing was lost: the AAST lockup, the presenter credit and the registration number are all carried by the hero section, the language and theme toggles live in the deck's control cluster, and the link to the text briefing moved there too. The component is archived at `src/components/archived/IntroScreen.tsx` rather than deleted, with its tests still running, and its 172 lines of now-dead CSS are commented out in place rather than removed, so the cover can be restored with its styling intact. Verified: no shipped JavaScript chunk contains the cover's markup, and the only `.intro-*` rules still compiled are `.intro-enter-btn` and `.intro-secondary-btn`, which the no-WebGL notice and the error boundary use. Two consequences were handled: the shell now holds its loader until the WebGL probe has run (so a device without WebGL still never downloads the 3D chunk), and `layout.tsx` gained a bilingual `<noscript>` link to `/handout`, a role the server-rendered cover used to fill.
 1. **`/handout` — the deck as a readable document.** A statically prerendered, printable, screen-reader-first version of the entire audit: three data tables with captions and row headers, the warehouse findings, a table of contents and print styles. This is also what no-WebGL and reduced-motion visitors are pointed to. It makes the content crawlable and citable, which a canvas never is.
 2. **CSV export of every dataset on screen.** RFC 4180 output (CRLF, correct quoting), localised, date-stamped filenames. An audit deck whose numbers cannot leave the slide is not an audit deck.
 3. **Full keyboard control and deep linking.** Arrows / Page / Space / Home / End / `1`–`5` / `T` / `L` / `?`, a native `<dialog>` shortcut sheet, and bidirectional hash deep links so any section can be shared.
@@ -77,13 +77,13 @@ Fixed by making one function the single source of truth (`pagePositionFromOffset
 
 | | Baseline `9ae5a8a` | v3 | Δ |
 |---|---|---|---|
-| Landing page total | **234,275 B** | **198,927 B** | **−35,348 B (−15.1%)** |
+| Landing page total | **234,275 B** | **198,355 B** | **−35,920 B (−15.3%)** |
 
 Measured with `scripts/bundle-budget.mjs` against `next start` for each revision: the prerendered HTML plus every `<script src>` and stylesheet it references, each gzipped. (The Three.js chunk is lazy and not referenced by the document; the total JavaScript ceiling for the route is enforced separately in `tests/e2e/performance.spec.ts`.)
 
 Two changes produced this. First, `framer-motion` was taken off the landing path (its two fades are CSS keyframes now), deferring the ~40 KB gzipped animation runtime into the control-room chunk where it was going to be loaded anyway. Second, the cover screen was removed entirely at the owner's request, which took its logo, icon set and credit markup out of the initial graph.
 
-Of the remaining 198,927 B, **≈148,000 B is the Next.js 16 + React 19 framework floor** (three framework chunks). Application code, icons and CSS account for ≈51,000 B. The enforced ceiling is 205,000 B, a deliberately small regression allowance.
+Of the remaining 198,355 B, **≈148,000 B is the Next.js 16 + React 19 framework floor** (three framework chunks). Application code, icons and CSS account for ≈51,000 B. The enforced ceiling is 205,000 B, a deliberately small regression allowance.
 
 ### Total built JavaScript
 
