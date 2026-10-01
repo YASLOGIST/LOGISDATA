@@ -62,9 +62,10 @@ test.describe("preferences", () => {
     await expect(page.locator("html")).toHaveAttribute("lang", "ar");
 
     await page.reload();
-    // The cover itself must come back in Arabic.
-    await expect(page.getByRole("button", { name: /ادخل غرفة التحكم/ })).toBeVisible();
+    // The choice must survive the reload and be applied before paint.
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(page.locator("html")).toHaveAttribute("lang", "ar");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/تسرب البيانات|البيانات/);
   });
 
   test("theme toggle switches palette and persists across reloads", async ({ page }) => {

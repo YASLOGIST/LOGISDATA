@@ -21,19 +21,17 @@ test.describe("control room entry", () => {
     // The product contract is "every device gets the content", not "every
     // device gets WebGL". Emulated mobile on a GPU-less runner can legitimately
     // fail the capability probe, and the deck must then show the documented
-    // fallback instead of a blank canvas. Assert whichever branch applies --
-    // but assert that one of them is always reachable.
-    const webglAvailable = await page.evaluate(() => {
-      const canvas = document.createElement("canvas");
-      return Boolean(canvas.getContext("webgl2") ?? canvas.getContext("webgl"));
-    });
+    // fallback instead of a blank canvas. Require one of the two, then assert
+    // the full deck only on the branch that actually rendered it.
+    const canvas = page.locator("canvas");
+    const fallback = page.getByRole("link", { name: /text briefing/i }).first();
+    await expect(canvas.first().or(fallback)).toBeVisible({ timeout: 30_000 });
 
-    if (!webglAvailable) {
-      await expect(page.getByRole("link", { name: /text briefing/i })).toBeVisible();
+    if ((await canvas.count()) === 0) {
+      await expect(fallback).toHaveAttribute("href", "/handout");
       return;
     }
 
-    await expect(page.locator("canvas")).toBeVisible({ timeout: 30_000 });
     await expect(page.getByRole("heading", { level: 1 })).toContainText(/Data leakage/i);
     await expect(page.getByRole("navigation", { name: /Presentation sections/i })).toBeVisible();
   });

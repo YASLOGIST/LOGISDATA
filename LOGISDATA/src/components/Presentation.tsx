@@ -3,7 +3,6 @@
 import { Canvas } from "@react-three/fiber";
 import { AdaptiveDpr, Html, Preload, Scroll, ScrollControls, useScroll } from "@react-three/drei";
 import { motion } from "framer-motion";
-import Link from "next/link";
 import { ChevronDown, FileText, Keyboard, Languages, Moon, Sun } from "lucide-react";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { presentationCopy } from "@/lib/data";
@@ -92,18 +91,42 @@ export function Presentation() {
       );
 
     element.addEventListener("scroll", sync, { passive: true });
-    scrollListener.current = () => element.removeEventListener("scroll", sync);
 
-    // Honour a deep link such as /#routes once the scroller exists.
-    const requested = pendingSection.current;
-    if (requested !== null) {
-      element.scrollTo({
-        top: scrollTopForSection(requested, element.scrollHeight, element.clientHeight),
-        behavior: "auto",
-      });
-      pendingSection.current = null;
-    }
-    sync();
+    /*
+     * The element exists before it is scrollable.
+     *
+     * This callback fires from a child of `ScrollControls`, and React runs
+     * child effects before parent effects -- so at this point drei has not
+     * yet appended the fill element that gives the container its height.
+     * `scrollHeight - clientHeight` is still 0, every computed target is 0,
+     * and a deep link or an early key press silently did nothing. Wait for
+     * the container to become scrollable, then flush whatever was asked for.
+     */
+    let frame = 0;
+    let attempts = 0;
+    const flushWhenScrollable = () => {
+      const scrollable = element.scrollHeight - element.clientHeight > 0;
+      if (!scrollable && attempts < 180) {
+        attempts += 1;
+        frame = requestAnimationFrame(flushWhenScrollable);
+        return;
+      }
+      const requested = pendingSection.current;
+      if (requested !== null) {
+        pendingSection.current = null;
+        element.scrollTo({
+          top: scrollTopForSection(requested, element.scrollHeight, element.clientHeight),
+          behavior: "auto",
+        });
+      }
+      sync();
+    };
+    flushWhenScrollable();
+
+    scrollListener.current = () => {
+      cancelAnimationFrame(frame);
+      element.removeEventListener("scroll", sync);
+    };
   }, []);
 
   useEffect(() => () => scrollListener.current?.(), []);
@@ -111,7 +134,9 @@ export function Presentation() {
   const goToSection = useCallback((section: number) => {
     const target = clampSectionIndex(section);
     const element = scrollElement.current;
-    if (!element) {
+    // Not mounted yet, or mounted but not yet scrollable: queue it and let
+    // `flushWhenScrollable` apply it as soon as the container has height.
+    if (!element || element.scrollHeight - element.clientHeight <= 0) {
       pendingSection.current = target;
       return;
     }
@@ -252,10 +277,17 @@ export function Presentation() {
         </nav>
 
         <div className="navigation-actions">
-          <Link className="control-button" href="/handout" prefetch={false}>
+          {/*
+            A plain <a>, not next/link, on purpose. drei renders the scrolled
+            HTML into a second React root; unmounting the deck client-side
+            tears the two roots down out of order and the orphaned tree throws
+            "R3F: Hooks can only be used within the Canvas component!". A full
+            navigation avoids the race and releases the WebGL context too.
+          */}
+          <a className="control-button" href="/handout">
             <FileText size={15} aria-hidden="true" />
             <span>{t("openHandout", language)}</span>
-          </Link>
+          </a>
           <button
             className="control-button"
             type="button"
