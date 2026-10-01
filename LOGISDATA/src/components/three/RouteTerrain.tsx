@@ -2,11 +2,12 @@
 
 import { Html, Line, useScroll } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { presentationCopy } from "@/lib/data";
 import { text } from "@/lib/i18n";
 import type { Language, ThemeMode } from "@/lib/types";
+import { getSectionApproach } from "@/lib/sceneFocus";
 import { FocusFadeLabel } from "./FocusFadeLabel";
 
 const SECTION_INDEX = 3;
@@ -59,15 +60,18 @@ export function RouteTerrain({ language, theme }: RouteTerrainProps) {
     geometry.computeVertexNormals();
     return geometry;
   }, []);
+  // Userland geometry must be disposed explicitly or it leaks GPU memory.
+  useEffect(() => () => terrainGeometry.dispose(), [terrainGeometry]);
   const terrainColor = theme === "dark" ? "#142f40" : "#d6e5e5";
   const gridColor = theme === "dark" ? "#446274" : "#8aa8a8";
 
   useFrame((_, delta) => {
     if (!terrainRef.current) return;
-    const sectionProgress = THREE.MathUtils.clamp((scroll.offset - 0.6) / 0.2, 0, 1);
+    const step = Math.min(delta, 1 / 20);
+    const sectionProgress = getSectionApproach(scroll.offset, SECTION_INDEX);
     const orbit = Math.sin(sectionProgress * Math.PI) * 0.17;
-    terrainRef.current.rotation.y = THREE.MathUtils.damp(terrainRef.current.rotation.y, orbit, 3.5, delta);
-    terrainRef.current.rotation.x = THREE.MathUtils.damp(terrainRef.current.rotation.x, -0.13 + Math.cos(sectionProgress * Math.PI) * 0.025, 3.5, delta);
+    terrainRef.current.rotation.y = THREE.MathUtils.damp(terrainRef.current.rotation.y, orbit, 3.5, step);
+    terrainRef.current.rotation.x = THREE.MathUtils.damp(terrainRef.current.rotation.x, -0.13 + Math.cos(sectionProgress * Math.PI) * 0.025, 3.5, step);
   });
 
   return (

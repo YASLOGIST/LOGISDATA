@@ -1,5 +1,11 @@
 import type { Config } from "tailwindcss";
 
+/**
+ * NOTE: this file previously mixed ESM (`import type`) with CommonJS
+ * (`module.exports = config`) and had no default export, so any tool that
+ * imported it as a module received `undefined`. It is now a plain ES
+ * module, matching how `@config` in `globals.css` loads it.
+ */
 const config: Config = {
   content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
   theme: {
@@ -36,8 +42,17 @@ const config: Config = {
         hero: ["clamp(3rem, 7vw, 7.35rem)", { lineHeight: "0.93", letterSpacing: "-0.075em" }],
         display: ["clamp(2.2rem, 5vw, 5.4rem)", { lineHeight: "0.95", letterSpacing: "-0.065em" }],
       },
+      /** Motion system tokens, mirrored from src/lib/motion.ts. */
       transitionTimingFunction: {
         executive: "cubic-bezier(0.22, 1, 0.36, 1)",
+        exit: "cubic-bezier(0.4, 0, 1, 1)",
+      },
+      transitionDuration: {
+        instant: "180ms",
+        fast: "320ms",
+        base: "550ms",
+        slow: "800ms",
+        cinematic: "1050ms",
       },
       boxShadow: {
         industrial: "0 22px 80px rgba(2, 12, 21, 0.28)",
@@ -47,4 +62,4 @@ const config: Config = {
   plugins: [],
 };
 
-module.exports = config;
+export default config;

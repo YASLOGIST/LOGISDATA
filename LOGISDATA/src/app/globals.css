@@ -30,8 +30,17 @@
   --line-strong: rgba(15, 41, 66, 0.23);
   --text: #0b2032;
   --text-soft: #496475;
-  --text-muted: #69818e;
+  --text-muted: #4c6271;
   --navy: #dceaf0;
+  /* Light-theme accents. The dark palette's bright accents (#7dd3fc,
+     #4de1c1, #f59e0b, #fb5b5b) measure between 1.6:1 and 2.5:1 against a
+     near-white surface, so every accented label failed WCAG 2.1 AA. These
+     replacements all measure above 4.5:1 on --bg (#f8fafc) and were
+     verified by the axe-core run in tests/e2e/accessibility.spec.ts. */
+  --amber: #8a5304;
+  --emerald: #0f766e;
+  --cyan: #0369a1;
+  --red: #b91c1c;
 }
 
 * {
@@ -248,8 +257,22 @@ button:focus-visible {
   width: 100%;
   height: 100vh;
   min-height: 620px;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
+  /*
+   * PERF: each section is a fixed-size, self-contained box. `contain`
+   * promises the engine that nothing inside can affect layout, paint or
+   * style outside it, so a framer-motion opacity/transform change on the
+   * entering section no longer invalidates the other four full-viewport
+   * subtrees stacked in drei's overlay.
+   *
+   * ARCHIVED (not deleted) -- the two declarations below were dead:
+   *     scroll-snap-align: start;
+   *     scroll-snap-stop: always;
+   * drei renders this markup into its `position: fixed` overlay root,
+   * which is outside the scroll container's scrollable flow, so these
+   * elements were never snap targets. The matching `scroll-snap-type`
+   * on the container has been dropped in Presentation.tsx.
+   */
+  contain: layout paint style;
 }
 
 .section-inner {
@@ -1006,6 +1029,11 @@ button:focus-visible {
 .route-line-green { background: var(--emerald); }
 .route-line-red { background: var(--red); opacity: 0.65; }
 
+/* ARCHIVED (v3) -- the routes panel was rebuilt as a real <table> (`.route-table`,
+   see RoutesSection.tsx) so the data has captions, row headers and a text
+   equivalent. These div-grid rules have no matching markup any more. Kept
+   commented rather than deleted so the previous layout can be recovered.
+
 .route-grid {
   display: grid;
   grid-template-columns: 38px minmax(160px, 1.5fr) repeat(3, minmax(85px, 0.75fr)) minmax(110px, 1fr);
@@ -1034,6 +1062,7 @@ button:focus-visible {
 
 .route-row:hover { background: var(--surface-soft); }
 .route-row:last-child { border-bottom: 0; }
+*/
 .route-rank { color: var(--text-muted); font-size: 0.62rem; }
 .route-region { color: var(--text); font-weight: 650; }
 .route-region-dot { background: var(--emerald); }
@@ -1336,7 +1365,6 @@ button:focus-visible {
   .warehouse-spec-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .warehouse-spec-card { min-height: 205px; }
   .warehouse-footer-note { display: none !important; }
-  .route-grid { grid-template-columns: 34px minmax(150px, 1.4fr) repeat(3, minmax(72px, 0.7fr)) minmax(100px, 0.9fr); gap: 8px; padding-inline: 12px; }
 }
 
 @media (max-width: 600px) {
@@ -1378,8 +1406,6 @@ button:focus-visible {
   .callout-content strong { font-size: 0.75rem; }
   .route-table-card { overflow-x: auto; }
   .route-card-header { min-width: 690px; }
-  .route-list-header,
-  .route-rows,
   .route-card-footer { min-width: 690px; }
   .warehouse-spec-grid { grid-template-columns: 1fr; gap: 7px; }
   .warehouse-spec-card { min-height: 0; padding: 12px; }
@@ -1404,161 +1430,6 @@ button:focus-visible {
 /* ------------------------------------------------------------------ */
 /* INTRO / COVER SCREEN                                                */
 /* ------------------------------------------------------------------ */
-
-.intro-screen {
-  position: fixed;
-  inset: 0;
-  z-index: 200;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  padding: 32px 20px;
-  background: var(--bg-deep);
-  color: var(--text);
-  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
-}
-
-.intro-grid {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.3;
-  background-image: linear-gradient(rgba(148, 197, 214, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(148, 197, 214, 0.05) 1px, transparent 1px);
-  background-size: 42px 42px;
-  mask-image: radial-gradient(circle at 50% 42%, black, transparent 78%);
-}
-
-.intro-glow {
-  position: absolute;
-  z-index: 0;
-  width: 46rem;
-  height: 46rem;
-  border-radius: 50%;
-  pointer-events: none;
-  filter: blur(10px);
-}
-
-.intro-glow-a {
-  top: -14rem;
-  right: -16rem;
-  background: radial-gradient(circle, rgba(77, 225, 193, 0.1), transparent 68%);
-}
-
-.intro-glow-b {
-  bottom: -18rem;
-  left: -16rem;
-  background: radial-gradient(circle, rgba(125, 211, 252, 0.08), transparent 68%);
-}
-
-.intro-card {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  width: min(92vw, 480px);
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  padding: clamp(32px, 5vw, 52px) clamp(24px, 5vw, 46px) clamp(36px, 5vw, 46px);
-  border: 1px solid var(--line-strong);
-  background: var(--surface-strong);
-  text-align: center;
-  box-shadow: 0 30px 90px rgba(2, 12, 21, 0.45);
-}
-
-.intro-logo-frame {
-  display: grid;
-  width: 104px;
-  height: 104px;
-  place-items: center;
-  border-radius: 50%;
-  background: #ffffff;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 10px 30px rgba(2, 12, 21, 0.4), 0 0 0 6px rgba(77, 225, 193, 0.08);
-}
-
-.intro-logo {
-  display: block;
-  width: 78px;
-  height: 77px;
-  object-fit: contain;
-}
-
-.intro-university-ar {
-  max-width: 360px;
-  margin: 6px 0 0;
-  color: var(--text);
-  font-size: 1.05rem;
-  font-weight: 700;
-  line-height: 1.6;
-}
-
-.intro-university-en {
-  max-width: 340px;
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.66rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.intro-divider {
-  display: block;
-  width: 42px;
-  height: 1px;
-  margin: 6px 0;
-  background: var(--emerald);
-  box-shadow: 0 0 12px rgba(77, 225, 193, 0.65);
-}
-
-.intro-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  margin: 0;
-  color: var(--text-soft);
-  font-size: 0.62rem;
-  font-weight: 600;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-
-.intro-eyebrow svg { color: var(--emerald); flex: 0 0 auto; }
-
-.intro-credit {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 14px;
-  padding: 16px 22px;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-}
-
-.intro-credit-line {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 6px;
-  margin: 0;
-  font-size: 0.78rem;
-}
-
-.intro-credit-key {
-  color: var(--text-muted);
-  font-weight: 700;
-  letter-spacing: 0.14em;
-}
-
-.intro-credit-colon { color: var(--emerald); }
-
-.intro-credit-value {
-  color: var(--text);
-  font-weight: 800;
-  letter-spacing: 0.06em;
-}
 
 .intro-enter-btn {
   display: inline-flex;
@@ -1603,18 +1474,7 @@ button:focus-visible {
   transform: translateX(-3px);
 }
 
-.intro-footer-note {
-  position: relative;
-  z-index: 1;
-  margin: 26px 0 0;
-  color: var(--text-muted);
-  font-size: 0.52rem;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-align: center;
-  text-transform: uppercase;
-}
-
+/* ARCHIVED with the cover screen (see the block at the end of this file).
 @media (max-width: 520px) {
   .intro-card { gap: 11px; padding: 30px 20px 34px; }
   .intro-logo-frame { width: 84px; height: 84px; }
@@ -1623,6 +1483,7 @@ button:focus-visible {
   .intro-credit-line { font-size: 0.7rem; }
   .intro-footer-note { margin-top: 20px; font-size: 0.46rem; }
 }
+*/
 
 /* Deferred engine states stay useful before/without WebGL. */
 .experience-loader,
@@ -1669,3 +1530,690 @@ button:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .loader-orbit { display: none; }
 }
+
+/* ================================================================== */
+/* v3 UPGRADE LAYER                                                    */
+/* Theme tokens are promoted to the document root so the intro screen, */
+/* the recovery screens and the /handout briefing are themed too --    */
+/* previously only `.presentation-root` reacted to the theme toggle.   */
+/* ================================================================== */
+
+html[data-theme="light"] {
+  --bg: #f8fafc;
+  --bg-deep: #eef4f6;
+  --surface: rgba(255, 255, 255, 0.84);
+  --surface-strong: rgba(255, 255, 255, 0.96);
+  --surface-soft: rgba(13, 39, 58, 0.035);
+  --line: rgba(15, 41, 66, 0.13);
+  --line-strong: rgba(15, 41, 66, 0.23);
+  --text: #0b2032;
+  --text-soft: #496475;
+  --text-muted: #4c6271;
+  --navy: #dceaf0;
+
+  /* Light-theme accents. The dark palette's bright accents (#7dd3fc,
+     #4de1c1, #f59e0b, #fb5b5b) measure between 1.6:1 and 2.5:1 against a
+     near-white surface, so every accented label failed WCAG 2.1 AA. These
+     replacements all measure above 4.5:1 on --bg (#f8fafc) and were
+     verified by the axe-core run in tests/e2e/accessibility.spec.ts. */
+  --amber: #8a5304;
+  --emerald: #0f766e;
+  --cyan: #0369a1;
+  --red: #b91c1c;
+}
+
+/* ---------------------------------------------------------------- */
+/* Accessibility primitives                                          */
+/* ---------------------------------------------------------------- */
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.skip-link {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  z-index: 400;
+  padding: 10px 18px;
+  transform: translate(-50%, -160%);
+  border: 1px solid var(--emerald);
+  border-radius: 999px;
+  background: var(--bg-deep);
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.skip-link:focus-visible {
+  transform: translate(-50%, 0);
+  outline: 2px solid var(--emerald);
+  outline-offset: 3px;
+}
+
+:where(a, button, [tabindex]):focus-visible {
+  outline: 2px solid var(--emerald);
+  outline-offset: 3px;
+}
+
+/* ---------------------------------------------------------------- */
+/* Scroll progress bar (single composited transform)                 */
+/* ---------------------------------------------------------------- */
+
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 35;
+  height: 2px;
+  background: var(--line);
+  pointer-events: none;
+}
+
+.scroll-progress > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--cyan), var(--emerald));
+  transform-origin: left center;
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+[dir="rtl"] .scroll-progress > span { transform-origin: right center; }
+
+/* ---------------------------------------------------------------- */
+/* Keyboard shortcut dialog                                          */
+/* ---------------------------------------------------------------- */
+
+.shortcut-dialog {
+  width: min(460px, calc(100vw - 32px));
+  padding: 20px 22px 24px;
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  background: var(--bg-deep);
+  color: var(--text);
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+}
+
+.shortcut-dialog::backdrop { background: rgba(2, 10, 18, 0.62); }
+
+.shortcut-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.shortcut-dialog h2 {
+  margin: 0;
+  font-size: 0.95rem;
+  letter-spacing: -0.02em;
+}
+
+.shortcut-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shortcut-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--text-soft);
+  font-size: 0.74rem;
+}
+
+.shortcut-list li:last-child { border-bottom: 0; }
+.shortcut-keys { display: inline-flex; gap: 5px; }
+
+.shortcut-list kbd {
+  min-width: 26px;
+  padding: 3px 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 5px;
+  background: var(--surface-soft);
+  color: var(--text);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.66rem;
+  text-align: center;
+}
+
+/* ---------------------------------------------------------------- */
+/* Dataset export control                                            */
+/* ---------------------------------------------------------------- */
+
+.export-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  transition: color 180ms ease, border-color 180ms ease, background-color 180ms ease;
+}
+
+.export-button:hover {
+  border-color: var(--emerald);
+  background: var(--surface-soft);
+  color: var(--emerald);
+}
+
+/* ---------------------------------------------------------------- */
+/* Intro screen additions                                            */
+/* ---------------------------------------------------------------- */
+
+.intro-secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--text-soft);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color 180ms ease, border-color 180ms ease;
+}
+
+.intro-secondary-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+
+/* The hero metric grid and warehouse spec grid became semantic lists. */
+.hero-metrics-grid,
+.warehouse-spec-grid {
+  margin-block: 0;
+  padding-inline-start: 0;
+  list-style: none;
+}
+
+.warehouse-accuracy {
+  display: block;
+  color: var(--text-muted);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+}
+
+/* ---------------------------------------------------------------- */
+/* Route table (was a div grid; now a semantic table)                */
+/* ---------------------------------------------------------------- */
+
+.route-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.69rem;
+  text-align: start;
+}
+
+.route-table th,
+.route-table td {
+  padding: 13px 14px;
+  border-bottom: 1px solid var(--line);
+  text-align: start;
+  white-space: nowrap;
+}
+
+.route-table thead th {
+  color: var(--text-muted);
+  font-size: 0.52rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.route-table tbody th { color: var(--text); font-weight: 650; }
+.route-table tbody td { color: var(--text-soft); }
+.route-table tbody tr:last-child th,
+.route-table tbody tr:last-child td { border-bottom: 0; }
+.route-table tbody tr:hover { background: var(--surface-soft); }
+
+.route-table .route-region { display: flex; align-items: center; gap: 8px; }
+.route-table .route-region-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+.table-overflow:focus-visible { outline: 2px solid var(--emerald); outline-offset: 2px; }
+
+/* ---------------------------------------------------------------- */
+/* Text briefing (/handout)                                          */
+/* ---------------------------------------------------------------- */
+
+.handout {
+  min-height: 100vh;
+  padding-bottom: 72px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+}
+
+.handout-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px clamp(18px, 5vw, 56px);
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.handout-brand { display: flex; align-items: center; gap: 12px; }
+.handout-brand div { display: flex; flex-direction: column; }
+.handout-brand strong { font-size: 0.86rem; letter-spacing: 0.04em; }
+.handout-brand small { color: var(--text-muted); font-size: 0.56rem; letter-spacing: 0.1em; }
+.handout-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.handout-main {
+  max-width: 78ch;
+  margin: 0 auto;
+  padding: 40px clamp(18px, 5vw, 24px) 0;
+}
+
+.handout-main h1 {
+  margin: 6px 0 14px;
+  font-size: clamp(1.9rem, 5vw, 3.1rem);
+  letter-spacing: -0.045em;
+  line-height: 1.04;
+}
+
+.handout-main h2 {
+  margin: 0 0 10px;
+  font-size: clamp(1.15rem, 3vw, 1.6rem);
+  letter-spacing: -0.03em;
+  scroll-margin-top: 92px;
+}
+
+.handout-main h3 { margin: 0 0 6px; font-size: 0.92rem; letter-spacing: -0.02em; }
+.handout-main section { padding: 28px 0; border-top: 1px solid var(--line); }
+.handout-main p { color: var(--text-soft); font-size: 0.86rem; line-height: 1.65; }
+.handout-lead { font-size: 1rem !important; }
+.handout-meta, .handout-source { color: var(--text-muted) !important; font-size: 0.72rem !important; }
+
+.handout-note {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-soft);
+  font-size: 0.76rem !important;
+}
+
+.handout-kpi {
+  display: inline-block;
+  margin: 4px 0 16px;
+  padding: 7px 13px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--emerald) !important;
+  font-size: 0.72rem !important;
+  font-weight: 700;
+}
+
+.handout-toc ol { margin: 0; padding-inline-start: 1.2em; color: var(--text-soft); }
+.handout-toc a { color: var(--cyan); font-size: 0.82rem; }
+
+.handout-metrics {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 0;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  list-style: none;
+}
+
+.handout-metrics li {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+
+.handout-metrics strong { display: block; color: var(--emerald); font-size: 1.6rem; letter-spacing: -0.04em; }
+.handout-metrics span { display: block; margin-top: 4px; font-size: 0.78rem; }
+.handout-metrics small { display: block; margin-top: 2px; color: var(--text-muted); font-size: 0.68rem; }
+
+.handout-table-wrap { overflow-x: auto; margin: 0 0 14px; }
+
+.handout-main table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.handout-main caption {
+  padding-bottom: 8px;
+  color: var(--text-muted);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-align: start;
+  text-transform: uppercase;
+}
+
+.handout-main th,
+.handout-main td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line);
+  text-align: start;
+  white-space: nowrap;
+}
+
+.handout-main thead th { color: var(--text-muted); font-size: 0.64rem; text-transform: uppercase; }
+.handout-main tbody th { color: var(--text); font-weight: 650; white-space: normal; }
+.handout-main tbody td { color: var(--text-soft); }
+
+.handout-specs { margin: 0; padding-inline-start: 1.2em; }
+.handout-specs li { margin-bottom: 18px; }
+.handout-specs p { margin: 2px 0; font-size: 0.8rem; }
+.handout-footer { padding-top: 26px; border-top: 1px solid var(--line); }
+
+/* ---------------------------------------------------------------- */
+/* Print / PDF handout                                               */
+/* ---------------------------------------------------------------- */
+
+@media print {
+  html, body { overflow: visible !important; background: #fff !important; color: #000 !important; }
+  .no-print, .skip-link { display: none !important; }
+  .handout { background: #fff !important; color: #000 !important; }
+  .handout-header { position: static; border-bottom: 1px solid #ccc; }
+  .handout-main { max-width: none; padding: 0; }
+  .handout-main section { page-break-inside: avoid; border-top: 1px solid #ccc; }
+  .handout-main p, .handout-main td, .handout-main th { color: #222 !important; }
+  .handout-kpi { color: #000 !important; border-color: #666; }
+  .handout-metrics strong { color: #000 !important; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.7em; }
+}
+
+/* ---------------------------------------------------------------- */
+/* Reduced motion: also neutralise the new effects                   */
+/* ---------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-progress > span { transition: none !important; }
+  .skip-link { transition: none !important; }
+}
+
+/* ARCHIVED with the cover screen: its entrance animation.
+@keyframes intro-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes intro-rise-in {
+  from { opacity: 0; transform: translate3d(0, 28px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-enter,
+  .intro-rise { animation: none !important; opacity: 1; transform: none; }
+}
+*/
+
+/* ---------------------------------------------------------------- */
+/* No-JavaScript notice. The deck is client-rendered, so this is the  */
+/* only route to the content when scripting is disabled.              */
+/* ---------------------------------------------------------------- */
+
+.noscript-notice {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: var(--bg);
+  color: var(--text);
+  text-align: center;
+}
+
+.noscript-notice p { max-width: 46ch; margin: 0; font-size: 0.95rem; line-height: 1.6; }
+
+.noscript-notice a {
+  padding: 11px 20px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: var(--cyan);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.noscript-notice a:hover { background: var(--surface-soft); }
+
+/* ---------------------------------------------------------------- */
+/* Narrow viewports keep the section navigation.                     */
+/* It used to be `display: none` below 860px, which removed it from  */
+/* the accessibility tree and left phone users with no way to jump   */
+/* between sections. The bar wraps instead, and the nav becomes a    */
+/* row of numbered pills (each still named via aria-label).          */
+/* ---------------------------------------------------------------- */
+
+@media (max-width: 860px) {
+  .top-navigation { flex-wrap: wrap; row-gap: 8px; }
+  .section-nav {
+    display: flex;
+    order: 3;
+    gap: 6px;
+    justify-content: space-between;
+    width: 100%;
+  }
+  .section-nav-button { flex: 1; justify-content: center; min-width: 0; padding: 7px 4px; }
+  .section-nav-button span:last-child { display: none; }
+}
+
+
+/* ARCHIVED (cover screen removed) -------------------------------- *
+ * These rules styled IntroScreen, the AAST title card that used to
+ * gate the deck. The component is archived at
+ * src/components/archived/IntroScreen.tsx and is no longer rendered,
+ * so none of this markup exists any more. Kept commented rather than
+ * deleted so the cover can be restored with its styling intact.
+ *
+ * Still live and therefore NOT archived: .intro-enter-btn and
+ * .intro-secondary-btn, which the no-WebGL notice and the error
+ * boundary both use.
+ *
+   .intro-screen {
+     position: fixed;
+     inset: 0;
+     z-index: 200;
+     display: flex;
+     flex-direction: column;
+     align-items: center;
+     justify-content: center;
+     overflow: hidden;
+     padding: 32px 20px;
+     background: var(--bg-deep);
+     color: var(--text);
+     font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+   }
+   .intro-grid {
+     position: absolute;
+     inset: 0;
+     z-index: 0;
+     pointer-events: none;
+     opacity: 0.3;
+     background-image: linear-gradient(rgba(148, 197, 214, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(148, 197, 214, 0.05) 1px, transparent 1px);
+     background-size: 42px 42px;
+     mask-image: radial-gradient(circle at 50% 42%, black, transparent 78%);
+   }
+   .intro-glow {
+     position: absolute;
+     z-index: 0;
+     width: 46rem;
+     height: 46rem;
+     border-radius: 50%;
+     pointer-events: none;
+     filter: blur(10px);
+   }
+   .intro-glow-a {
+     top: -14rem;
+     right: -16rem;
+     background: radial-gradient(circle, rgba(77, 225, 193, 0.1), transparent 68%);
+   }
+   .intro-glow-b {
+     bottom: -18rem;
+     left: -16rem;
+     background: radial-gradient(circle, rgba(125, 211, 252, 0.08), transparent 68%);
+   }
+   .intro-card {
+     position: relative;
+     z-index: 1;
+     display: flex;
+     width: min(92vw, 480px);
+     flex-direction: column;
+     align-items: center;
+     gap: 14px;
+     padding: clamp(32px, 5vw, 52px) clamp(24px, 5vw, 46px) clamp(36px, 5vw, 46px);
+     border: 1px solid var(--line-strong);
+     background: var(--surface-strong);
+     text-align: center;
+     box-shadow: 0 30px 90px rgba(2, 12, 21, 0.45);
+   }
+   .intro-logo-frame {
+     display: grid;
+     width: 104px;
+     height: 104px;
+     place-items: center;
+     border-radius: 50%;
+     background: #ffffff;
+     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 10px 30px rgba(2, 12, 21, 0.4), 0 0 0 6px rgba(77, 225, 193, 0.08);
+   }
+   .intro-logo {
+     display: block;
+     width: 78px;
+     height: 77px;
+     object-fit: contain;
+   }
+   .intro-university-ar {
+     max-width: 360px;
+     margin: 6px 0 0;
+     color: var(--text);
+     font-size: 1.05rem;
+     font-weight: 700;
+     line-height: 1.6;
+   }
+   .intro-university-en {
+     max-width: 340px;
+     margin: 0;
+     color: var(--text-muted);
+     font-size: 0.66rem;
+     font-weight: 600;
+     letter-spacing: 0.1em;
+     text-transform: uppercase;
+   }
+   .intro-divider {
+     display: block;
+     width: 42px;
+     height: 1px;
+     margin: 6px 0;
+     background: var(--emerald);
+     box-shadow: 0 0 12px rgba(77, 225, 193, 0.65);
+   }
+   .intro-eyebrow {
+     display: inline-flex;
+     align-items: center;
+     gap: 7px;
+     margin: 0;
+     color: var(--text-soft);
+     font-size: 0.62rem;
+     font-weight: 600;
+     letter-spacing: 0.09em;
+     text-transform: uppercase;
+   }
+   .intro-eyebrow svg { color: var(--emerald); flex: 0 0 auto; }
+   .intro-credit {
+     display: flex;
+     flex-direction: column;
+     gap: 8px;
+     margin-top: 14px;
+     padding: 16px 22px;
+     border-top: 1px solid var(--line);
+     border-bottom: 1px solid var(--line);
+   }
+   .intro-credit-line {
+     display: flex;
+     align-items: baseline;
+     justify-content: center;
+     gap: 6px;
+     margin: 0;
+     font-size: 0.78rem;
+   }
+   .intro-credit-key {
+     color: var(--text-muted);
+     font-weight: 700;
+     letter-spacing: 0.14em;
+   }
+   .intro-credit-colon { color: var(--emerald); }
+   .intro-credit-value {
+     color: var(--text);
+     font-weight: 800;
+     letter-spacing: 0.06em;
+   }
+   .intro-footer-note {
+     position: relative;
+     z-index: 1;
+     margin: 26px 0 0;
+     color: var(--text-muted);
+     font-size: 0.52rem;
+     font-weight: 600;
+     letter-spacing: 0.18em;
+     text-align: center;
+     text-transform: uppercase;
+   }
+   .intro-controls {
+     position: absolute;
+     top: 20px;
+     inset-inline-end: 20px;
+     z-index: 3;
+     display: flex;
+     gap: 8px;
+   }
+   .intro-actions,
+   .fallback-actions {
+     display: flex;
+     flex-wrap: wrap;
+     align-items: center;
+     justify-content: center;
+     gap: 10px;
+     margin-top: 14px;
+   }
+   .intro-eyebrow {
+     margin: 0;
+     font-size: 0.68rem;
+     font-weight: 700;
+   }
+   .intro-enter { animation: intro-fade-in 800ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+   .intro-rise { animation: intro-rise-in 1050ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both; }
+ * ---------------------------------------------------------------- */

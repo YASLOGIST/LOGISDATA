@@ -86,6 +86,7 @@ export interface PresentationCopy {
     byline: LocalizedText;
     presenter: string;
     registration: string;
+    registrationLabel: LocalizedText;
     date: LocalizedText;
     modelNote: LocalizedText;
     networkLabel: LocalizedText;
@@ -126,6 +127,8 @@ export interface PresentationCopy {
     stockTitle: LocalizedText;
     stockValue: LocalizedText;
     smoothingLabel: LocalizedText;
+    amplificationLabel: LocalizedText;
+    supplierUnitsLabel: LocalizedText;
   };
   routes: {
     eyebrow: LocalizedText;

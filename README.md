@@ -38,10 +38,11 @@
 | **Audit theatres** | 5 (hidden cost → invoice → bullwhip → routes → warehouse) | one narrative spine, one scroll container, one camera rig |
 | **WebGL contexts** | 1 | all scenes stay mounted; transitions are transforms, not remounts |
 | **Locales** | `en` / `ar` with native RTL | layout direction, numerals and currency invert at runtime |
-| **Initial JS on the cover** | zero Three.js | the engine is code-split behind explicit user intent |
+| **Initial JS on first paint** | zero Three.js | the engine is code-split and loaded only once the device is known to support WebGL |
 | **Runtime data fetches** | 0 on the critical path | the domain model is typed, static and tree-shaken |
 | **Database** | optional | the presentation is fully functional with no `DATABASE_URL` |
 | **Source surface** | 26 TypeScript modules (~2.2k lines) + 1.7k lines of tokenized CSS | small enough to audit in an afternoon |
+| **Automated coverage** | 161 unit tests + 59 end-to-end checks | every major user flow is exercised, not just pure functions |
 | **Known vulnerabilities** | 0 (`npm audit`) | pinned toolchain plus an `esbuild` override |
 
 ---
@@ -68,8 +69,8 @@ flowchart LR
 
   subgraph client["Client experience — use client"]
     direction TB
-    shell["PresentationShell<br/>cover + error boundary"]:::cli
-    intro["IntroScreen<br/>static, engine-free"]:::cli
+    shell["PresentationShell<br/>capability probe + error boundary"]:::cli
+    loader["EngineLoader<br/>static, engine-free"]:::cli
     pres["Presentation<br/>nav · prefs · keyboard"]:::cli
     canvas["Canvas · ScrollControls<br/>single WebGL context"]:::cli
     rig["IndustrialScene<br/>camera rig + focus curve"]:::cli
@@ -91,8 +92,8 @@ flowchart LR
   end
 
   visitor --> layout --> page --> shell
-  shell --> intro
-  shell -. "dynamic import after intent" .-> pres
+  shell --> loader
+  shell -. "dynamic import once WebGL is confirmed" .-> pres
   pres --> canvas --> rig --> scenes
   canvas --> html
   scenes --> focus
@@ -108,8 +109,8 @@ The application is deliberately split into three cost tiers. Nothing from a heav
 
 | Tier | Boundary | Payload | Trigger |
 | :--- | :--- | :--- | :--- |
-| **T0 — Cover** | `page.tsx` → `PresentationShell` → `IntroScreen` | HTML, CSS, Framer Motion, two icons | first paint |
-| **T1 — Engine** | `dynamic(() => import("@/components/Presentation"), { ssr: false })` | React Three Fiber, drei, Three.js, all five scenes | click on **Enter Control Room** |
+| **T0 — Shell** | `page.tsx` → `PresentationShell` → `EngineLoader` | HTML, CSS, Framer Motion, two icons | first paint |
+| **T1 — Engine** | `dynamic(() => import("@/components/Presentation"), { ssr: false })` | React Three Fiber, drei, Three.js, all five scenes | hydration, once `probeDevice()` confirms a WebGL context |
 | **T2 — Data plane** | `getDb()` inside `api/health` | `pg` pool, Drizzle | an HTTP request *and* a configured `DATABASE_URL` |
 
 > [!IMPORTANT]
@@ -120,7 +121,7 @@ The application is deliberately split into three cost tiers. Nothing from a heav
 Five operational models share **one** `<Canvas>`, **one** camera and **one** scroll container. Section transitions are therefore pure transform interpolations — no WebGL context is created or destroyed while the user navigates.
 
 ```text
-ScrollControls(pages = 5, damping = 0.25, scroll-snap: y mandatory)
+ScrollControls(pages = 5, damping = 0.12)
    │
    ├─ ScrollBridge ───────────► exposes scroll.el to React for programmatic nav
    │
@@ -146,7 +147,7 @@ focus(page, i) = clamp(1 − |page − (i + 0.5)| / 1.08, 0, 1)
 | :--- | :--- | :--- |
 | [`src/app/layout.tsx`](LOGISDATA/src/app/layout.tsx) | Document shell, font loading, Open Graph / Twitter metadata | Animated GIF card first, static PNG as fallback |
 | [`src/app/page.tsx`](LOGISDATA/src/app/page.tsx) | Server entry | Renders the shell only — no client state |
-| [`src/components/PresentationShell.tsx`](LOGISDATA/src/components/PresentationShell.tsx) | Cover ↔ engine handoff, `ExperienceBoundary` | A WebGL failure degrades to a retryable panel, never a white screen |
+| [`src/components/PresentationShell.tsx`](LOGISDATA/src/components/PresentationShell.tsx) | Capability probe ↔ engine handoff, `ExperienceBoundary` | A WebGL failure degrades to a retryable panel, never a white screen |
 | [`src/components/Presentation.tsx`](LOGISDATA/src/components/Presentation.tsx) | Navigation, preferences, keyboard map, visibility gating | Owns all cross-cutting UI state |
 | [`src/components/three/IndustrialScene.tsx`](LOGISDATA/src/components/three/IndustrialScene.tsx) | Camera rig, per-section transforms, section change events | Zero allocations inside `useFrame` |
 | [`src/components/three/*`](LOGISDATA/src/components/three) | Five scene models + `FocusFadeLabel` | Read-only consumers of `lib/data.ts` |
@@ -169,7 +170,7 @@ focus(page, i) = clamp(1 − |page − (i + 0.5)| / 1.08, 0, 1)
 <tbody>
 
 <tr><td colspan="5"><b>Experience</b></td></tr>
-<tr><td>01</td><td>Five-stage audit narrative</td><td><code>sections/*</code></td><td>Scroll-snapped sections bound to a shared section index</td><td>✅ Shipped</td></tr>
+<tr><td>01</td><td>Five-stage audit narrative</td><td><code>sections/*</code></td><td>Full-viewport sections bound to a shared section index</td><td>✅ Shipped</td></tr>
 <tr><td>02</td><td>Synchronized 3D models</td><td><code>three/*</code></td><td>Supply network, laser audit gate, demand matrix, route terrain, warehouse grid</td><td>✅ Shipped</td></tr>
 <tr><td>03</td><td>Cinematic camera choreography</td><td><code>IndustrialScene</code></td><td>Dual-target interpolation with frame-rate-independent damping</td><td>✅ Shipped</td></tr>
 <tr><td>04</td><td>Deferred engine boot</td><td><code>PresentationShell</code></td><td><code>next/dynamic</code> + <code>ssr:false</code> behind an explicit CTA</td><td>✅ Shipped</td></tr>
@@ -210,7 +211,7 @@ focus(page, i) = clamp(1 − |page − (i + 0.5)| / 1.08, 0, 1)
 
 ### W-01 · Cold start and engine handoff
 
-The cover must be instant; the engine must be explicit. This is the only place in the app where a user action triggers a network download of code.
+First paint must be instant and must never depend on WebGL. The engine chunk is requested only after `probeDevice()` has confirmed the browser can actually create a rendering context, so a device that cannot run the deck never pays for the 1 MB Three.js chunk — it is served the `/handout` text briefing instead.
 
 ```mermaid
 sequenceDiagram
@@ -222,8 +223,8 @@ sequenceDiagram
   participant G as WebGL
 
   V->>S: GET /
-  S-->>V: IntroScreen — crest, credits, CTA (no Three.js)
-  V->>S: click "Enter Control Room"
+  S-->>V: EngineLoader — crest and status line (no Three.js)
+  S->>S: probeDevice() — WebGL, cores, memory, reduced motion
   S-->>V: experience-loader (role=status, aria-live=polite)
   S->>D: import("@/components/Presentation")
   D->>P: module resolved
@@ -370,7 +371,7 @@ npm ci
 npm run dev
 ```
 
-Open **http://localhost:3000** and press **Enter Control Room**.
+Open **http://localhost:3000**. The deck loads straight into the overview section; individual stages are deep-linkable (`/#warehouse`).
 
 <details>
 <summary><b>Optional — attach PostgreSQL for readiness checks</b></summary>
@@ -400,7 +401,10 @@ curl -s localhost:3000/api/health | jq
 | `npm run lint` | ESLint flat config, Core Web Vitals | ✅ |
 | `npm run build` | Production compile + route collection | ✅ |
 | `npm audit` | Dependency advisories (currently **0**) | ✅ |
-| `npm run check` | All three in sequence — the pre-merge contract | ✅ |
+| `npm run test` | 161 Vitest unit tests (85% statements, 90% lines) | ✅ |
+| `npm run test:e2e` | 59 Playwright checks across desktop, reduced-motion and mobile — including axe accessibility and an enforced performance budget | ✅ |
+| `npm run budget` | Gzipped landing payload against a 205,000 B ceiling | ✅ |
+| `npm run check` | Types, lint and build in sequence — the pre-merge contract | ✅ |
 
 ---
 
@@ -477,7 +481,7 @@ The Open Graph card is not a screenshot — it is **compiled**, from the same to
 | Packets travelling the node graph | `SupplyNetwork` (the real 8 nodes / 10 edges) | Signal flow between facilities |
 | Red and amber rings pulsing | `status: "leak" \| "phantom"` | Unverified nodes demanding attention |
 | Five-segment rail illuminating 01 → 05 | The five sections | The narrative spine of the deck |
-| Crest watermark and pill pulse | `IntroScreen` lockup | Institutional provenance |
+| Crest watermark and pill pulse | `HeroSection` lockup | Institutional provenance |
 
 <details>
 <summary><b>Engineering notes — how the file stays under 2 MB at 1200×630</b></summary>
