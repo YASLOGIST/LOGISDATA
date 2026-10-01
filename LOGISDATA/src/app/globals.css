@@ -30,14 +30,14 @@
   --line-strong: rgba(15, 41, 66, 0.23);
   --text: #0b2032;
   --text-soft: #496475;
-  --text-muted: #5b7382;
+  --text-muted: #4c6271;
   --navy: #dceaf0;
   /* Light-theme accents. The dark palette's bright accents (#7dd3fc,
      #4de1c1, #f59e0b, #fb5b5b) measure between 1.6:1 and 2.5:1 against a
      near-white surface, so every accented label failed WCAG 2.1 AA. These
      replacements all measure above 4.5:1 on --bg (#f8fafc) and were
      verified by the axe-core run in tests/e2e/accessibility.spec.ts. */
-  --amber: #a16207;
+  --amber: #8a5304;
   --emerald: #0f766e;
   --cyan: #0369a1;
   --red: #b91c1c;
@@ -1699,7 +1699,7 @@ html[data-theme="light"] {
   --line-strong: rgba(15, 41, 66, 0.23);
   --text: #0b2032;
   --text-soft: #496475;
-  --text-muted: #5b7382;
+  --text-muted: #4c6271;
   --navy: #dceaf0;
 
   /* Light-theme accents. The dark palette's bright accents (#7dd3fc,
@@ -1707,7 +1707,7 @@ html[data-theme="light"] {
      near-white surface, so every accented label failed WCAG 2.1 AA. These
      replacements all measure above 4.5:1 on --bg (#f8fafc) and were
      verified by the axe-core run in tests/e2e/accessibility.spec.ts. */
-  --amber: #a16207;
+  --amber: #8a5304;
   --emerald: #0f766e;
   --cyan: #0369a1;
   --red: #b91c1c;

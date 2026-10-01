@@ -67,21 +67,45 @@ export function Presentation() {
   const [pageVisible, setPageVisible] = useState(true);
   const [helpOpen, setHelpOpen] = useState(false);
   const scrollElement = useRef<HTMLDivElement | null>(null);
+  const scrollListener = useRef<(() => void) | null>(null);
   const pendingSection = useRef<number | null>(
     sectionIndexFromHash(typeof window === "undefined" ? null : window.location.hash),
   );
 
-  const onSectionChange = useCallback((section: number) => setActiveSection(section), []);
-
+  /**
+   * The active section is derived from the scroll container's native
+   * `scroll` event, not from the 3D render loop.
+   *
+   * It used to be reported from `useFrame`, which coupled the URL hash, the
+   * nav highlight and the screen-reader announcement to GPU frames: under
+   * `frameloop="demand"` (reduced motion) or a backgrounded tab those frames
+   * stop, and the announced state froze mid-travel. Reading the DOM makes it
+   * exact and immediate, and the 3D scene is still free to ease toward it.
+   */
   const onScrollReady = useCallback((element: HTMLDivElement) => {
     scrollElement.current = element;
+
+    const sync = () =>
+      setActiveSection(
+        sectionFromScrollTop(element.scrollTop, element.scrollHeight, element.clientHeight),
+      );
+
+    element.addEventListener("scroll", sync, { passive: true });
+    scrollListener.current = () => element.removeEventListener("scroll", sync);
+
     // Honour a deep link such as /#routes once the scroller exists.
     const requested = pendingSection.current;
     if (requested !== null) {
-      element.scrollTo({ top: scrollTopForSection(requested, element.scrollHeight, element.clientHeight), behavior: "auto" });
+      element.scrollTo({
+        top: scrollTopForSection(requested, element.scrollHeight, element.clientHeight),
+        behavior: "auto",
+      });
       pendingSection.current = null;
     }
+    sync();
   }, []);
+
+  useEffect(() => () => scrollListener.current?.(), []);
 
   const goToSection = useCallback((section: number) => {
     const target = clampSectionIndex(section);
@@ -301,7 +325,6 @@ export function Presentation() {
                 language={language}
                 theme={theme}
                 device={device}
-                onSectionChange={onSectionChange}
               />
               <Scroll html style={{ width: "100%" }}>
                 <main

@@ -71,18 +71,25 @@ test.describe("preferences", () => {
 
   test("theme toggle switches palette and persists across reloads", async ({ page }) => {
     await enterControlRoom(page);
+    const html = page.locator("html");
+    // The deck honours prefers-color-scheme on a first visit, so the initial
+    // value depends on the runner. Assert the flip, not a fixed colour.
+    const before = await html.getAttribute("data-theme");
+    const after = before === "dark" ? "light" : "dark";
     await page.getByRole("button", { name: "Theme" }).click();
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    await expect(html).toHaveAttribute("data-theme", after);
     await page.reload();
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    await expect(html).toHaveAttribute("data-theme", after);
   });
 
   test("the T and L shortcuts toggle theme and language", async ({ page }) => {
     await enterControlRoom(page);
+    const html = page.locator("html");
+    const before = await html.getAttribute("data-theme");
     await page.keyboard.press("t");
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+    await expect(html).toHaveAttribute("data-theme", before === "dark" ? "light" : "dark");
     await page.keyboard.press("l");
-    await expect(page.locator("html")).toHaveAttribute("lang", "ar");
+    await expect(html).toHaveAttribute("lang", "ar");
   });
 });
 

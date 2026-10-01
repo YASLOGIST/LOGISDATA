@@ -4,7 +4,6 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useScroll } from "@react-three/drei";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
-import { getActiveSectionIndex } from "@/lib/sceneFocus";
 import { SECTION_COUNT, pagePositionFromOffset } from "@/lib/sections";
 import type { DeviceProfile } from "@/lib/device";
 import type { Language, ThemeMode } from "@/lib/types";
@@ -19,7 +18,6 @@ interface IndustrialSceneProps {
   language: Language;
   theme: ThemeMode;
   device: DeviceProfile;
-  onSectionChange: (section: number) => void;
 }
 
 /** Camera position per section, in scene units. */
@@ -55,7 +53,7 @@ const DEPTH_STEP = 2.2;
 const clamp01 = (value: number) => THREE.MathUtils.clamp(value, 0, 1);
 const smoothStep = (value: number) => value * value * (3 - 2 * value);
 
-function SceneRig({ language, theme, device, onSectionChange }: IndustrialSceneProps) {
+function SceneRig({ language, theme, device }: IndustrialSceneProps) {
   const scroll = useScroll();
   const invalidate = useThree((state) => state.invalidate);
   const heroRef = useRef<THREE.Group>(null);
@@ -63,7 +61,6 @@ function SceneRig({ language, theme, device, onSectionChange }: IndustrialSceneP
   const demandRef = useRef<THREE.Group>(null);
   const routeRef = useRef<THREE.Group>(null);
   const warehouseRef = useRef<THREE.Group>(null);
-  const lastSection = useRef(-1);
   const cameraPosition = useRef(CAMERA_VECTORS[0].clone());
   const lookPosition = useRef(LOOK_VECTORS[0].clone());
   const cameraDesired = useRef(new THREE.Vector3());
@@ -96,12 +93,6 @@ function SceneRig({ language, theme, device, onSectionChange }: IndustrialSceneP
     const currentSection = Math.min(SECTION_COUNT - 1, Math.floor(pagePosition));
     const nextSection = Math.min(SECTION_COUNT - 1, currentSection + 1);
     const transitionT = smoothStep(clamp01(pagePosition - currentSection));
-
-    const activeSection = getActiveSectionIndex(scroll.offset);
-    if (lastSection.current !== activeSection) {
-      lastSection.current = activeSection;
-      onSectionChange(activeSection);
-    }
 
     cameraDesired.current.copy(CAMERA_VECTORS[currentSection]).lerp(CAMERA_VECTORS[nextSection], transitionT);
     lookDesired.current.copy(LOOK_VECTORS[currentSection]).lerp(LOOK_VECTORS[nextSection], transitionT);
