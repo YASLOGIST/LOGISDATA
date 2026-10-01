@@ -24,11 +24,11 @@ test.describe("control room entry", () => {
     // fallback instead of a blank canvas. Require one of the two, then assert
     // the full deck only on the branch that actually rendered it.
     const canvas = page.locator("canvas");
-    const fallback = page.getByRole("link", { name: /text briefing/i }).first();
-    await expect(canvas.first().or(fallback)).toBeVisible({ timeout: 30_000 });
+    const fallback = page.getByRole("link", { name: /text briefing/i });
+    await expect(canvas.or(fallback).first()).toBeVisible({ timeout: 30_000 });
 
     if ((await canvas.count()) === 0) {
-      await expect(fallback).toHaveAttribute("href", "/handout");
+      await expect(fallback.first()).toHaveAttribute("href", "/handout");
       return;
     }
 
@@ -38,8 +38,17 @@ test.describe("control room entry", () => {
 
   test("the deck and the briefing are reachable without JavaScript errors", async ({ page }) => {
     const errors: string[] = [];
-    page.on("pageerror", (error) => errors.push(error.message));
+    // Keep a frame of the stack: a bare message is not enough to locate a
+    // teardown error that only happens during navigation.
+    page.on("pageerror", (error) =>
+      errors.push(`${error.message} | ${(error.stack ?? "").split("\n")[1]?.trim() ?? "no frame"}`),
+    );
     await page.goto("/");
+    // Let the deck finish mounting before leaving it; clicking mid-mount is
+    // a different (and much rarer) scenario than a user reading and then
+    // choosing the text briefing.
+    await expect(page.locator("canvas").or(page.getByRole("link", { name: /text briefing/i })).first())
+      .toBeVisible({ timeout: 30_000 });
     await page.getByRole("link", { name: /text briefing/i }).first().click();
     await expect(page).toHaveURL(/\/handout$/);
     expect(errors).toEqual([]);

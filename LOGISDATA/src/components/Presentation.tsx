@@ -118,6 +118,19 @@ export function Presentation() {
           top: scrollTopForSection(requested, element.scrollHeight, element.clientHeight),
           behavior: "auto",
         });
+        /*
+         * drei ignores the very first scroll event it sees (it sets
+         * `scrollTop = 1` on mount to allow upward scrolling, and suppresses
+         * the event that causes). A deep link applied in that window moved
+         * the container but left drei's own offset at 0, so the DOM said
+         * "warehouse" while the camera and the translated HTML stayed on the
+         * overview. Re-announce the position once that guard has cleared.
+         */
+        frame = requestAnimationFrame(() => {
+          frame = requestAnimationFrame(() => {
+            element.dispatchEvent(new Event("scroll"));
+          });
+        });
       }
       sync();
     };
