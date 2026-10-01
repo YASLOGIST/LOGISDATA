@@ -1,0 +1,77 @@
+import { expect, test } from "@playwright/test";
+
+test.describe("control room entry", () => {
+  test("cover screen loads and defers the 3D engine until intent", async ({ page }) => {
+    const threeRequests: string[] = [];
+    page.on("request", (request) => {
+      if (/three|drei|fiber/i.test(request.url())) threeRequests.push(request.url());
+    });
+
+    await page.goto("/");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Enter Control Room/i })).toBeVisible();
+    // The intro must not pull the WebGL runtime.
+    expect(threeRequests, "3D runtime downloaded before the user entered").toHaveLength(0);
+  });
+
+  test("entering the control room renders the canvas and the first section", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: /Enter Control Room/i }).click();
+    await expect(page.locator("canvas")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/Data leakage/i);
+    await expect(page.getByRole("navigation", { name: /Presentation sections/i })).toBeVisible();
+  });
+
+  test("the cover and the briefing are reachable without JavaScript errors", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.goto("/");
+    await page.getByRole("link", { name: /text briefing/i }).click();
+    await expect(page).toHaveURL(/\/handout$/);
+    expect(errors).toEqual([]);
+  });
+});
+
+test.describe("health endpoint", () => {
+  test("GET reports liveness with an honest database status", async ({ request }) => {
+    const response = await request.get("/api/health");
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(body).toMatchObject({ ok: true, service: "logisdata-control-room", database: "not-configured" });
+    expect(typeof body.uptimeSeconds).toBe("number");
+    expect(response.headers()["cache-control"]).toContain("no-store");
+  });
+
+  test("HEAD is a body-less liveness probe", async ({ request }) => {
+    const response = await request.head("/api/health");
+    expect(response.status()).toBe(204);
+  });
+});
+
+test.describe("delivery hardening", () => {
+  test("serves the expected security headers", async ({ request }) => {
+    const response = await request.get("/");
+    const headers = response.headers();
+    expect(headers["x-content-type-options"]).toBe("nosniff");
+    expect(headers["x-frame-options"]).toBe("DENY");
+    expect(headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
+    expect(headers["content-security-policy"]).toContain("frame-ancestors 'none'");
+    expect(headers["content-security-policy"]).toContain("object-src 'none'");
+    expect(headers["content-security-policy"]).toContain("base-uri 'none'");
+    expect(headers["x-powered-by"]).toBeUndefined();
+  });
+
+  test("publishes robots.txt, a sitemap and a web manifest", async ({ request }) => {
+    const robots = await request.get("/robots.txt");
+    expect(robots.status()).toBe(200);
+    expect(await robots.text()).toContain("Sitemap:");
+
+    const sitemap = await request.get("/sitemap.xml");
+    expect(sitemap.status()).toBe(200);
+    expect(await sitemap.text()).toContain("/handout");
+
+    const manifest = await request.get("/manifest.webmanifest");
+    expect(manifest.status()).toBe(200);
+    expect((await manifest.json()).name).toBe("LOGISDATA Control Room");
+  });
+});

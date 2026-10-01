@@ -1,0 +1,159 @@
+# v2 → v3 — Audit, Upgrade and Verification Report
+
+Baseline: commit `9ae5a8a` ("LOGISDATA Supply Chain Control Room", package version 2.0.0).
+Target: this branch, package version 3.0.0.
+
+Every number below was measured on this machine (Node 22.22.3, npm 10.9.8) by building and serving both revisions side by side — the baseline from a clean `git worktree` of `9ae5a8a`, the upgrade from the working tree.
+
+---
+
+## 1. Ranked audit of the baseline
+
+| # | Severity | Finding | Status |
+|---|---|---|---|
+| 1 | **Critical** | Database pool created at module import; a missing `DATABASE_URL` crashed the import, and dev-time module reloading leaked pools | ✅ Closed |
+| 2 | **High** | `dpr={1}` hard-coded on the canvas — every retina device rendered soft | ✅ Closed |
+| 3 | **High** | `prefers-reduced-motion` honoured in CSS but ignored by the 3D render loop; the canvas animated continuously regardless, including while the tab was hidden | ✅ Closed |
+| 4 | **High** | The intro screen was English-only; language could not be chosen before entering | ✅ Closed |
+| 5 | **High** | No Content-Security-Policy and no security headers at all | ✅ Closed |
+| 6 | **High** | Zero tests, zero CI | ✅ Closed |
+| 7 | **High** | No WebGL capability check — unsupported browsers got a blank canvas | ✅ Closed |
+| 8 | **High** | Accessibility: no skip link, no landmarks, no live region, charts with no text equivalent, invisible 3D labels still in the accessibility tree | ✅ Closed |
+| 9 | Medium | No `robots.txt`, `sitemap.xml`, manifest, canonical URL or structured data | ✅ Closed |
+| 10 | Medium | `tailwind.config.ts` used CommonJS `module.exports` in an ESM project | ✅ Closed |
+| 11 | Medium | No deep linking — a section could not be shared or bookmarked | ✅ Closed |
+| 12 | Medium | No validation that the presented figures were internally consistent | ✅ Closed |
+| 13 | **High** | **Scroll ⇄ scene desynchronisation** (see below) | ✅ Closed |
+| 14 | Low | Suspected font subsetting win from `@fontsource-variable/cairo/wght.css` | ❌ Non-issue — byte-identical to `index.css`; downgraded after inspection |
+| 15 | Low | `Intl.NumberFormat` constructed on every render | ✅ Closed |
+| 16 | Low | Hard-coded English strings inside otherwise bilingual components | ✅ Closed |
+
+**15 of 16 closed; the 16th was disproved by measurement rather than left open.** The top-10 requirement (≥8 closed) is met with 10 of 10.
+
+### The headline bug — finding 13
+
+`<ScrollControls pages={5}>` makes the container five viewport heights tall, so the scrollable distance is **four** viewports: `scroll.offset` runs 0→1 across `pages − 1`. The baseline scene computed `const page = offset * 5` and then lit section *i* inside a hard-coded window `[i*0.2, (i+1)*0.2]`.
+
+Result: the 3D scenes peaked at offsets 0.1, 0.3, 0.5, 0.7, 0.9 while the HTML sections sat at 0.0, 0.25, 0.50, 0.75, 1.00. Every scene was up to half a section out of step with the text it was supposed to illustrate, and the first and last scenes never reached full focus at all.
+
+Fixed by making one function the single source of truth (`pagePositionFromOffset = offset × (SECTION_COUNT − 1)`), deriving focus from distance rather than from windows, and locking both with unit tests. This is the kind of defect that is invisible in review and obvious in a test.
+
+### Other confirmed defects found and fixed
+
+- **Scale fight.** `IndustrialScene` damped the warehouse group's X/Z scale twice per frame toward two different targets, so it oscillated. Collapsed to one `explode` multiplier applied with `setScalar`.
+- **Dead write-guard.** `applyLabelFocus` compared the new opacity against `style.opacity`, but the CSSOM re-serialises `"0.500"` to `"0.5"`, so the guard never matched and the DOM was written on every frame for every label. Re-keyed on `node.dataset.focus`.
+- **Per-frame allocation.** `BoxGeometry`, `EdgesGeometry` and `Color` instances were constructed during render in several scenes, and `RouteTerrain`/`WarehouseGrid` never disposed their geometries. Hoisted and disposed.
+- **Unclamped delta.** No `useFrame` clamped `delta`, so returning from a background tab delivered a multi-second delta and snapped every damped value. All loops now clamp to `1/20 s`.
+- **React 19 violations.** Three `useEffect` → `setState` patterns flagged by `react-hooks/set-state-in-effect`, replaced by a `useSyncExternalStore` preference store.
+
+---
+
+## 2. What changed
+
+### New capabilities (requirement: ≥3, one of them visual)
+
+1. **`/handout` — the deck as a readable document.** A statically prerendered, printable, screen-reader-first version of the entire audit: three data tables with captions and row headers, the warehouse findings, a table of contents and print styles. This is also what no-WebGL and reduced-motion visitors are pointed to. It makes the content crawlable and citable, which a canvas never is.
+2. **CSV export of every dataset on screen.** RFC 4180 output (CRLF, correct quoting), localised, date-stamped filenames. An audit deck whose numbers cannot leave the slide is not an audit deck.
+3. **Full keyboard control and deep linking.** Arrows / Page / Space / Home / End / `1`–`5` / `T` / `L` / `?`, a native `<dialog>` shortcut sheet, and bidirectional hash deep links so any section can be shared.
+4. **Ambient data-stream field — the visual upgrade.** 900 / 420 / 0 GPU-animated points (tier-dependent) drifting through the scene in **one draw call**, with all motion in a vertex shader so the CPU does nothing per frame. Off entirely under reduced motion. It reads as live telemetry moving through the facility rather than decoration.
+5. **Adaptive quality tiering.** dpr clamp, antialiasing and particle budget all derived from cores / memory / viewport / Save-Data / connection type.
+6. **Theme and language persistence**, applied before first paint so neither flashes.
+
+### Infrastructure added
+
+- `tests/unit/` — 11 files, 153 tests, enforced coverage thresholds.
+- `tests/e2e/` — 4 Playwright specs across 3 projects: smoke, navigation, accessibility (axe WCAG 2.1 AA), performance budget.
+- `.github/workflows/ci.yml` — four jobs: quality, security (`npm audit` + secret/`.env` scanning), build + payload budget, e2e/a11y/perf.
+- `scripts/bundle-budget.mjs` — measures the real gzipped cover payload from a running server and fails over a ceiling.
+- `Dockerfile` — multi-stage, non-root, standalone output, with a container health check.
+- `.nvmrc`, `.dockerignore`, a documented `.env.example`, `docs/`.
+
+---
+
+## 3. Measured results — baseline vs v3
+
+### Initial payload (cover screen, gzipped, measured over HTTP)
+
+| | Baseline `9ae5a8a` | v3 | Δ |
+|---|---|---|---|
+| Cover screen total | **234,275 B** | **212,779 B** | **−21,496 B (−9.2%)** |
+
+Measured with `scripts/bundle-budget.mjs` against `next start` for each revision: the prerendered HTML plus every `<script src>` and stylesheet it references, each gzipped.
+
+This is a reduction **despite** v3 adding a theme bootstrap, a language toggle on the cover, a second CTA, the preference store and the device prober. The saving comes from removing `framer-motion` from the cover path: the cover's two fades are now CSS keyframes, so the ~40 KB gzipped animation runtime is deferred into the control-room chunk with three.js, where it was always going to be loaded anyway.
+
+Of the remaining 212,779 B, **≈148,000 B is the Next.js 16 + React 19 framework floor** (three framework chunks). Application code, icons and CSS account for ≈32,000 B. The enforced ceiling is 220,000 B, which leaves a deliberately small regression allowance.
+
+### Total built JavaScript
+
+| | Baseline | v3 |
+|---|---|---|
+| `.next/static` JS, raw | 1,719,273 B | 1,781,002 B |
+| `.next/static` JS, gzipped | 491,495 B | 512,231 B |
+| CSS | 35,252 B | 45,933 B |
+| Routes built | 3 | 7 |
+
+Total output grew ~4%, which is the correct trade: it buys four new routes, the handout, export, keyboard control, the particle field and the capability fallbacks — none of which the cover visitor downloads.
+
+### Quality gates
+
+| | Baseline | v3 |
+|---|---|---|
+| Unit/component tests | 0 | **153 passing** |
+| Statement coverage | 0% | **85.39%** |
+| Branch coverage | 0% | **82.96%** |
+| Function coverage | 0% | **86.01%** |
+| Line coverage | 0% | **89.47%** |
+| E2E / a11y / perf specs | 0 | 4 specs × 3 projects |
+| CI jobs | 0 | 4 |
+| Security headers | 0 | 10 |
+| `tsc --noEmit` | clean | clean |
+| `eslint .` | clean | clean |
+| `npm audit` | 0 vulnerabilities | 0 vulnerabilities |
+| Routes with a text equivalent | 0 | all |
+
+### Enforced runtime budget
+
+`tests/e2e/performance.spec.ts` fails the build on any of:
+
+- cover-screen JavaScript transferred > 420,000 B (uncompressed transfer measurement)
+- cumulative layout shift ≥ 0.1
+- sustained frame rate ≤ 30 fps in the control room
+- any frame rendered while the tab is hidden
+
+---
+
+## 4. Verification commands
+
+```bash
+cd LOGISDATA
+npm ci
+npm run typecheck && npm run lint && npm run test:coverage && npm run build
+
+# payload budget, against a real server
+npm run start & sleep 3 && npm run budget
+
+# end-to-end, accessibility and performance
+npm run test:e2e:install    # once
+npm run test:e2e
+```
+
+---
+
+## 5. Unknowns and residual risk
+
+- **INFERRED — PROBABLE.** The e2e suite has never executed in this environment (see §6); its assertions were written against the running production server and the HTTP-level ones were verified by hand, but the browser-level ones are unproven until CI runs them.
+- **CONFIRMED.** `script-src 'unsafe-inline'` is still required; the reasoning and the compensating controls are in `docs/ARCHITECTURE.md` §6.
+- **INFERRED — PROBABLE.** Arabic copy is presentation-grade but unreviewed by a domain expert.
+- **CONFIRMED.** The figures are illustrative. Nothing in this repository should be used for an operational decision without substituting audited source data.
+
+## 6. Backlog — only items that were technically impossible here
+
+1. **Execute the Playwright suite locally.** *Reason:* browser binaries cannot be installed in this sandbox. `npx playwright install --with-deps chromium` fails because the apt package `fonts-freefont-ttf` has no installation candidate in this image, and `npx playwright install chromium` fails with `ECONNRESET` / "Client network socket disconnected before secure TLS connection was established" from `cdn.playwright.dev`. No system Chrome or Chromium binary exists either. The suite and its CI job are committed and will run on the first push.
+2. **Real-device performance numbers (fps, LCP, INP on actual hardware).** *Reason:* same — no browser, and a headless container has no GPU, so any figure produced here would be fabricated. The budget is instead enforced as an assertion that CI must satisfy.
+3. **Lighthouse / PageSpeed scores.** *Reason:* requires Chrome; see above.
+4. **Native-speaker review of the Arabic copy.** *Reason:* requires a human reviewer, not a code change.
+5. **Replacing the illustrative dataset with audited figures.** *Reason:* requires access to AAST's ERP / TMS / WMS systems and credentials, which are out of scope by the task's own rules.
+6. **Verifying the Docker image builds and runs.** *Reason:* no Docker daemon in this sandbox. The Dockerfile follows the documented Next.js standalone pattern and the build step it depends on (`NEXT_OUTPUT=standalone`) was exercised locally, but the image itself is unbuilt.
+
+Everything else that was identified has been implemented.

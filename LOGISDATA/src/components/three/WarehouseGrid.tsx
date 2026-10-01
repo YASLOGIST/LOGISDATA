@@ -2,11 +2,12 @@
 
 import { Html, useScroll } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { presentationCopy, warehouseBins } from "@/lib/data";
 import { text } from "@/lib/i18n";
 import type { Language, ThemeMode } from "@/lib/types";
+import { easeApproach, getSectionApproach } from "@/lib/sceneFocus";
 import { FocusFadeLabel } from "./FocusFadeLabel";
 
 const SECTION_INDEX = 4;
@@ -21,9 +22,14 @@ export function WarehouseGrid({ language, theme }: WarehouseGridProps) {
   const scanRef = useRef<THREE.Mesh>(null);
   const scroll = useScroll();
   const frameColor = theme === "dark" ? "#2e5265" : "#73989c";
-  const problemBins = warehouseBins.filter((bin) => bin.status === "mismatch").slice(0, 3);
+  const problemBins = useMemo(() => warehouseBins.filter((bin) => bin.status === "mismatch").slice(0, 3), []);
   const boxGeometry = useMemo(() => new THREE.BoxGeometry(1, 1, 1), []);
   const boxMaterial = useMemo(() => new THREE.MeshStandardMaterial({ vertexColors: true, transparent: true, opacity: 0.92, roughness: 0.48, metalness: 0.2 }), []);
+
+  useEffect(() => () => {
+    boxGeometry.dispose();
+    boxMaterial.dispose();
+  }, [boxGeometry, boxMaterial]);
 
   useLayoutEffect(() => {
     const mesh = boxesRef.current;
@@ -31,10 +37,13 @@ export function WarehouseGrid({ language, theme }: WarehouseGridProps) {
     const matrix = new THREE.Matrix4();
     const rotation = new THREE.Quaternion();
     const scale = new THREE.Vector3(0.82, 0.62, 0.72);
+    const position = new THREE.Vector3();
+    const mismatchColor = new THREE.Color("#fb5b5b");
+    const auditedColor = new THREE.Color("#4de1c1");
     warehouseBins.forEach((bin, index) => {
-      matrix.compose(new THREE.Vector3(bin.x, bin.y, bin.z), rotation, scale);
+      matrix.compose(position.set(bin.x, bin.y, bin.z), rotation, scale);
       mesh.setMatrixAt(index, matrix);
-      mesh.setColorAt(index, new THREE.Color(bin.status === "mismatch" ? "#fb5b5b" : "#4de1c1"));
+      mesh.setColorAt(index, bin.status === "mismatch" ? mismatchColor : auditedColor);
     });
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
@@ -42,10 +51,11 @@ export function WarehouseGrid({ language, theme }: WarehouseGridProps) {
 
   useFrame((_, delta) => {
     if (!scanRef.current) return;
-    const sectionProgress = THREE.MathUtils.clamp((scroll.offset - 0.8) / 0.2, 0, 1);
-    const easedProgress = sectionProgress * sectionProgress * (3 - 2 * sectionProgress);
+    const step = Math.min(delta, 1 / 20);
+    const sectionProgress = getSectionApproach(scroll.offset, SECTION_INDEX);
+    const easedProgress = easeApproach(sectionProgress);
     const targetY = THREE.MathUtils.lerp(-2.25, 2.25, easedProgress);
-    scanRef.current.position.y = THREE.MathUtils.damp(scanRef.current.position.y, targetY, 5.5, delta);
+    scanRef.current.position.y = THREE.MathUtils.damp(scanRef.current.position.y, targetY, 5.5, step);
     const material = scanRef.current.material as THREE.MeshBasicMaterial;
     material.opacity = THREE.MathUtils.lerp(0.08, 0.2, Math.sin(sectionProgress * Math.PI));
   });

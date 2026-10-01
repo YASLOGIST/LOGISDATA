@@ -37,6 +37,7 @@ export const presentationCopy: PresentationCopy = {
     byline: { en: "Prepared for AAST leadership", ar: "مُعد لقيادة الأكاديمية العربية" },
     presenter: "Ahmed Yasser Ali",
     registration: "211010269",
+    registrationLabel: { en: "Reg.", ar: "قيد" },
     date: { en: "Executive presentation · 06 February 2025", ar: "عرض تنفيذي · ٦ فبراير ٢٠٢٥" },
     modelNote: {
       en: "Illustrative, placeholder-realistic figures for executive presentation",
@@ -92,6 +93,8 @@ export const presentationCopy: PresentationCopy = {
     stockTitle: { en: "Safety stock over-allocation", ar: "تخصيص زائد للمخزون الآمن" },
     stockValue: { en: "31% above service need", ar: "٣١٪ فوق احتياج الخدمة" },
     smoothingLabel: { en: "signal smoothing", ar: "تسوية الإشارة" },
+    amplificationLabel: { en: "amplification at supplier tier", ar: "تضخيم عند مستوى المورد" },
+    supplierUnitsLabel: { en: "units at supplier tier", ar: "وحدة عند مستوى المورد" },
   },
   routes: {
     eyebrow: { en: "04 / FLEET + TELEMATICS CONTROL", ar: "٠٤ / رقابة الأسطول والتليماتكس" },

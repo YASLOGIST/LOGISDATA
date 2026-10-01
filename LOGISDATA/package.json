@@ -6,8 +6,18 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm run lint && npm run build"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install --with-deps chromium",
+    "budget": "node scripts/bundle-budget.mjs",
+    "audit:security": "npm audit --audit-level=high",
+    "check": "npm run typecheck && npm run lint && npm run test && npm run build",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@fontsource-variable/cairo": "^5.3.0",
@@ -25,22 +35,31 @@
     "three": "^0.185.1"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "4.1.17",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
     "@types/node": "22.19.15",
     "@types/pg": "8.18.0",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "^6.1.1",
+    "@vitest/coverage-v8": "^5.0.3",
     "drizzle-kit": "^0.31.11",
     "eslint": "9.39.4",
     "eslint-config-next": "^16.3.7",
+    "jsdom": "^30.1.1",
     "postcss": "^8.5.28",
     "tailwindcss": "4.1.17",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "^5.0.3"
   },
   "overrides": {
     "esbuild": "0.25.12"
   },
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Bilingual interactive supply-chain audit control room",
   "engines": {
     "node": ">=22.0.0"

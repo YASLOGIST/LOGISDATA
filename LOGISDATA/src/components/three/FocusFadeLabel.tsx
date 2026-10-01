@@ -6,7 +6,7 @@ import { useRef, type ReactNode } from "react";
 import { applyLabelFocus, getSectionFocus } from "@/lib/sceneFocus";
 
 interface FocusFadeLabelProps {
-  /** Index (0–4) of the presentation section this label belongs to. */
+  /** Index (0-4) of the presentation section this label belongs to. */
   sectionIndex: number;
   className: string;
   children: ReactNode;
@@ -15,9 +15,12 @@ interface FocusFadeLabelProps {
 /**
  * Wraps a scene-label's content in a div whose opacity/visibility tracks
  * how "in focus" its parent section currently is. All five 3D scenes stay
- * mounted simultaneously and are only scaled/repositioned during scroll —
+ * mounted simultaneously and are only scaled/repositioned during scroll --
  * without this, out-of-focus labels stayed at full opacity and visually
  * piled up on top of the active section's labels during transitions.
+ *
+ * `applyLabelFocus` also toggles `aria-hidden` and `pointer-events`, so a
+ * screen reader only ever encounters the active section's scene labels.
  */
 export function FocusFadeLabel({ sectionIndex, className, children }: FocusFadeLabelProps) {
   const scroll = useScroll();
@@ -28,7 +31,7 @@ export function FocusFadeLabel({ sectionIndex, className, children }: FocusFadeL
   });
 
   return (
-    <div ref={ref} className={className}>
+    <div ref={ref} className={className} style={{ opacity: 0, visibility: "hidden" }} aria-hidden="true">
       {children}
     </div>
   );

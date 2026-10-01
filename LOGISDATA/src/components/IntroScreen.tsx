@@ -1,75 +1,106 @@
 "use client";
 
-import { motion } from "framer-motion";
 import Image from "next/image";
-import { ArrowRight, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, ArrowRight, FileText, Languages, Moon, ShieldCheck, Sun } from "lucide-react";
+import { presentationCopy } from "@/lib/data";
+import { t, text } from "@/lib/i18n";
+import { usePreferences } from "@/components/providers/PreferencesProvider";
 
 interface IntroScreenProps {
   onEnter: () => void;
 }
 
-const ease = [0.22, 1, 0.36, 1] as const;
-
 export function IntroScreen({ onEnter }: IntroScreenProps) {
+  const { language, theme, rtl, toggleLanguage, toggleTheme } = usePreferences();
+  const Arrow = rtl ? ArrowLeft : ArrowRight;
+
+  // The cover deliberately uses CSS keyframes instead of framer-motion:
+  // the animation engine is ~45 kB gzipped and the cover only needs two
+  // fades, so loading it here would make every visitor pay for the deck's
+  // animation runtime before deciding to enter. `prefers-reduced-motion`
+  // is handled by the stylesheet, not by JavaScript.
   return (
-    <motion.div
-      className="intro-screen"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0, scale: 1.015 }}
-      transition={{ duration: 0.65, ease }}
-    >
+    <div className="intro-screen intro-enter" dir={rtl ? "rtl" : "ltr"}>
       <div className="intro-grid" aria-hidden="true" />
       <div className="intro-glow intro-glow-a" aria-hidden="true" />
       <div className="intro-glow intro-glow-b" aria-hidden="true" />
 
-      <motion.div
-        className="intro-card"
-        initial={{ opacity: 0, y: 28 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.85, delay: 0.12, ease }}
-      >
+      <div className="intro-controls">
+        <button
+          className="control-button"
+          type="button"
+          onClick={toggleLanguage}
+          aria-label={text(presentationCopy.nav.language, language)}
+        >
+          <Languages size={15} aria-hidden="true" />
+          <span>{language === "en" ? "AR" : "EN"}</span>
+        </button>
+        <button
+          className="control-button"
+          type="button"
+          onClick={toggleTheme}
+          aria-label={text(presentationCopy.nav.theme, language)}
+          aria-pressed={theme === "light"}
+        >
+          {theme === "dark" ? <Sun size={15} aria-hidden="true" /> : <Moon size={15} aria-hidden="true" />}
+          <span>{theme === "dark" ? "LIGHT" : "DARK"}</span>
+        </button>
+      </div>
+
+      <main className="intro-card intro-rise">
         <div className="intro-logo-frame">
           <Image
             src="/aast-logo.png"
-            alt="Arab Academy for Science, Technology and Maritime Transport"
+            alt={t("universityEn", language)}
             width={104}
             height={103}
             className="intro-logo"
             priority
+            sizes="104px"
           />
         </div>
 
-        <p className="intro-university-ar">الأكاديمية العربية للعلوم والتكنولوجيا والنقل البحري</p>
-        <p className="intro-university-en">Arab Academy for Science, Technology &amp; Maritime Transport</p>
-
-        <span className="intro-divider" />
-
-        <p className="intro-eyebrow">
-          <ShieldCheck size={13} />
-          <span>Executive Supply Chain &amp; Data Audit Presentation</span>
+        <p className="intro-university-ar" lang="ar" dir="rtl">
+          {t("universityAr", language)}
         </p>
+        <p className="intro-university-en" lang="en" dir="ltr">
+          {t("universityEn", language)}
+        </p>
+
+        <span className="intro-divider" aria-hidden="true" />
+
+        <h1 className="intro-eyebrow">
+          <ShieldCheck size={13} aria-hidden="true" />
+          <span>{t("introSubtitle", language)}</span>
+        </h1>
 
         <div className="intro-credit">
           <p className="intro-credit-line">
-            <span className="intro-credit-key">BY</span>
-            <span className="intro-credit-colon">:</span>
-            <span className="intro-credit-value">AHMED YASSER ALI</span>
+            <span className="intro-credit-key">{t("by", language)}</span>
+            <span className="intro-credit-colon" aria-hidden="true">:</span>
+            <span className="intro-credit-value">{presentationCopy.hero.presenter}</span>
           </p>
           <p className="intro-credit-line">
-            <span className="intro-credit-key">REG</span>
-            <span className="intro-credit-colon">:</span>
-            <span className="intro-credit-value" dir="ltr">211010269</span>
+            <span className="intro-credit-key">{t("reg", language)}</span>
+            <span className="intro-credit-colon" aria-hidden="true">:</span>
+            <span className="intro-credit-value" dir="ltr">{presentationCopy.hero.registration}</span>
           </p>
         </div>
 
-        <button type="button" className="intro-enter-btn" onClick={onEnter}>
-          <span>Enter Control Room</span>
-          <ArrowRight size={16} />
-        </button>
-      </motion.div>
+        <div className="intro-actions">
+          <button type="button" className="intro-enter-btn" onClick={onEnter}>
+            <span>{t("enterControlRoom", language)}</span>
+            <Arrow size={16} aria-hidden="true" />
+          </button>
+          <Link className="intro-secondary-btn" href="/handout" prefetch={false}>
+            <FileText size={14} aria-hidden="true" />
+            <span>{t("openHandout", language)}</span>
+          </Link>
+        </div>
+      </main>
 
-      <p className="intro-footer-note">AAST // EXECUTIVE DATA LAB — CONTROL ROOM ACCESS</p>
-    </motion.div>
+      <p className="intro-footer-note">{t("introFooter", language)}</p>
+    </div>
   );
 }

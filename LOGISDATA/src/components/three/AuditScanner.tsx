@@ -1,44 +1,49 @@
 "use client";
 
-import { Html, Line } from "@react-three/drei";
+import { Html, Line, useScroll } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { presentationCopy } from "@/lib/data";
 import { text } from "@/lib/i18n";
-import { applyLabelFocus, getSectionFocus } from "@/lib/sceneFocus";
+import { applyLabelFocus, easeApproach, getSectionApproach, getSectionFocus } from "@/lib/sceneFocus";
 import type { Language, ThemeMode } from "@/lib/types";
-import { useScroll } from "@react-three/drei";
 
 const SECTION_INDEX = 1;
 
 interface AuditScannerProps {
   language: Language;
   theme: ThemeMode;
+  /** When false, continuous idle animation is skipped (low tier / reduced motion). */
+  animate?: boolean;
 }
+
+/** Stable colour instances: previously re-allocated on every React render. */
+const WARNING_COLOR = new THREE.Color("#f59e0b");
+const VERIFIED_COLOR = new THREE.Color("#4de1c1");
 
 const scannerXs = [-2.7, -1.8, -0.9, 0, 0.9, 1.8, 2.7];
 
-export function AuditScanner({ language, theme }: AuditScannerProps) {
+export function AuditScanner({ language, theme, animate = true }: AuditScannerProps) {
   const scroll = useScroll();
   const beamRef = useRef<THREE.Group>(null);
   const beamMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
   const labelRef = useRef<HTMLDivElement>(null);
   const [isVerified, setIsVerified] = useState(false);
-  const warningColor = new THREE.Color("#f59e0b");
-  const verifiedColor = new THREE.Color("#4de1c1");
-  const frameColor = theme === "dark" ? "#c4d6e3" : "#0f2942";
+  const frameColor = useMemo(() => (theme === "dark" ? "#c4d6e3" : "#0f2942"), [theme]);
 
   useFrame((_, delta) => {
     if (!beamRef.current) return;
-    const sectionProgress = THREE.MathUtils.clamp((scroll.offset - 0.2) / 0.2, 0, 1);
-    const easedProgress = sectionProgress * sectionProgress * (3 - 2 * sectionProgress);
+    const step = Math.min(delta, 1 / 20);
+    const sectionProgress = getSectionApproach(scroll.offset, SECTION_INDEX);
+    const easedProgress = easeApproach(sectionProgress);
     const targetX = THREE.MathUtils.lerp(-2.55, 2.55, easedProgress);
-    beamRef.current.position.x = THREE.MathUtils.damp(beamRef.current.position.x, targetX, 6, delta);
-    beamRef.current.position.y = THREE.MathUtils.damp(beamRef.current.position.y, 0.25 + Math.sin(scroll.offset * 12) * 0.03, 4, delta);
+    beamRef.current.position.x = THREE.MathUtils.damp(beamRef.current.position.x, targetX, 6, step);
+    const bob = animate ? Math.sin(scroll.offset * 12) * 0.03 : 0;
+    beamRef.current.position.y = THREE.MathUtils.damp(beamRef.current.position.y, 0.25 + bob, 4, step);
     if (beamMaterialRef.current) {
-      beamMaterialRef.current.color.lerpColors(warningColor, verifiedColor, easedProgress);
-      beamMaterialRef.current.emissive.lerpColors(warningColor, verifiedColor, easedProgress);
+      beamMaterialRef.current.color.lerpColors(WARNING_COLOR, VERIFIED_COLOR, easedProgress);
+      beamMaterialRef.current.emissive.lerpColors(WARNING_COLOR, VERIFIED_COLOR, easedProgress);
       beamMaterialRef.current.emissiveIntensity = THREE.MathUtils.lerp(1.3, 2.5, easedProgress);
     }
     const nextVerified = sectionProgress > 0.68;
@@ -98,7 +103,12 @@ export function AuditScanner({ language, theme }: AuditScannerProps) {
       </group>
 
       <Html position={[0, 2.75, 0]} center distanceFactor={8}>
-        <div ref={labelRef} className={`scene-label ${isVerified ? "scene-label-good" : "scene-label-warning"}`}>
+        <div
+          ref={labelRef}
+          className={`scene-label ${isVerified ? "scene-label-good" : "scene-label-warning"}`}
+          style={{ opacity: 0, visibility: "hidden" }}
+          aria-hidden="true"
+        >
           <span className="scene-label-dot" />
           <span>{text(presentationCopy.audit.scannerLabel, language)}</span>
           <strong>{isVerified ? text(presentationCopy.audit.verified, language) : text(presentationCopy.audit.warning, language)}</strong>

@@ -7,6 +7,7 @@ import * as THREE from "three";
 import { demandTiers, presentationCopy } from "@/lib/data";
 import { text } from "@/lib/i18n";
 import type { DemandTier, Language, ThemeMode } from "@/lib/types";
+import { easeApproach, getSectionApproach } from "@/lib/sceneFocus";
 import { FocusFadeLabel } from "./FocusFadeLabel";
 
 const SECTION_INDEX = 2;
@@ -34,13 +35,13 @@ function DemandBar({ tier, index, series, theme }: DemandBarProps) {
 
   useFrame((_, delta) => {
     if (!groupRef.current) return;
-    const sectionProgress = THREE.MathUtils.clamp((scroll.offset - 0.4) / 0.2, 0, 1);
-    const easedProgress = sectionProgress * sectionProgress * (3 - 2 * sectionProgress);
+    const step = Math.min(delta, 1 / 20);
+    const easedProgress = easeApproach(getSectionApproach(scroll.offset, SECTION_INDEX));
     const targetValue = series === "distorted" ? THREE.MathUtils.lerp(tier.distorted, tier.audited, easedProgress) : initialValue;
     const targetHeight = targetValue / 40;
-    groupRef.current.scale.y = THREE.MathUtils.damp(groupRef.current.scale.y, targetHeight, 7, delta);
-    groupRef.current.position.y = THREE.MathUtils.damp(groupRef.current.position.y, baseFloor + targetHeight / 2, 7, delta);
-    groupRef.current.rotation.y = THREE.MathUtils.damp(groupRef.current.rotation.y, Math.sin(scroll.offset * 4 + index) * 0.04, 3, delta);
+    groupRef.current.scale.y = THREE.MathUtils.damp(groupRef.current.scale.y, targetHeight, 7, step);
+    groupRef.current.position.y = THREE.MathUtils.damp(groupRef.current.position.y, baseFloor + targetHeight / 2, 7, step);
+    groupRef.current.rotation.y = THREE.MathUtils.damp(groupRef.current.rotation.y, Math.sin(scroll.offset * 4 + index) * 0.04, 3, step);
   });
 
   return (
