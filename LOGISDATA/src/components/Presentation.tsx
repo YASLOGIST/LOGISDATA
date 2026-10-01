@@ -14,6 +14,8 @@ import {
   clampSectionIndex,
   hashFromSectionIndex,
   sectionIndexFromHash,
+  scrollTopForSection,
+  sectionFromScrollTop,
 } from "@/lib/sections";
 import type { Language } from "@/lib/types";
 import { usePreferences } from "@/components/providers/PreferencesProvider";
@@ -70,28 +72,30 @@ export function Presentation() {
   );
 
   const onSectionChange = useCallback((section: number) => setActiveSection(section), []);
+
   const onScrollReady = useCallback((element: HTMLDivElement) => {
     scrollElement.current = element;
     // Honour a deep link such as /#routes once the scroller exists.
     const requested = pendingSection.current;
     if (requested !== null) {
-      element.scrollTo({ top: requested * element.clientHeight, behavior: "auto" });
+      element.scrollTo({ top: scrollTopForSection(requested, element.scrollHeight, element.clientHeight), behavior: "auto" });
       pendingSection.current = null;
     }
   }, []);
 
-  const goToSection = useCallback(
-    (section: number, behavior: ScrollBehavior = reduced ? "auto" : "smooth") => {
-      const target = clampSectionIndex(section);
-      const element = scrollElement.current;
-      if (!element) {
-        pendingSection.current = target;
-        return;
-      }
-      element.scrollTo({ top: target * element.clientHeight, behavior });
-    },
-    [reduced],
-  );
+  const goToSection = useCallback((section: number) => {
+    const target = clampSectionIndex(section);
+    const element = scrollElement.current;
+    if (!element) {
+      pendingSection.current = target;
+      return;
+    }
+    // Deliberately an instant scroll: drei damps its own offset, and both
+    // the camera and the translated HTML follow that damped value, so the
+    // visible transition is still smooth. Native smooth scrolling would
+    // additionally fight the damping and can be interrupted mid-flight.
+    element.scrollTo({ top: scrollTopForSection(target, element.scrollHeight, element.clientHeight), behavior: "auto" });
+  }, []);
 
   // --- Deep linking -------------------------------------------------------
   // Each section is addressable (`/#warehouse`), so a presenter can link
@@ -139,9 +143,15 @@ export function Presentation() {
         return;
       }
 
+      // Relative moves start from where the scroller actually is. Reading
+      // `activeSection` instead would lag: it is fed back from the damped
+      // render loop, so rapid arrow presses re-targeted a section the deck
+      // had already been told to leave.
       let destination: number | null = null;
-      if (NEXT_KEYS.has(event.key)) destination = activeSection + 1;
-      else if (PREV_KEYS.has(event.key)) destination = activeSection - 1;
+      const element = scrollElement.current;
+      const from = element ? sectionFromScrollTop(element.scrollTop, element.scrollHeight, element.clientHeight) : (pendingSection.current ?? activeSection);
+      if (NEXT_KEYS.has(event.key)) destination = from + 1;
+      else if (PREV_KEYS.has(event.key)) destination = from - 1;
       else if (event.key === "Home") destination = 0;
       else if (event.key === "End") destination = SECTION_COUNT - 1;
       else if (/^[1-9]$/.test(event.key)) {
