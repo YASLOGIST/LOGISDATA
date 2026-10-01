@@ -1,0 +1,21 @@
+{
+  "name": "logisdata-og-image",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Deterministic vector pipeline that renders the LOGISDATA animated Open Graph card (og-image-animated.gif) and its static fallback.",
+  "scripts": {
+    "build": "node generate-og.mjs",
+    "preview": "node generate-og.mjs --still-only"
+  },
+  "dependencies": {
+    "@expo-google-fonts/cairo": "^0.4.2",
+    "@expo-google-fonts/jetbrains-mono": "^0.4.1",
+    "@expo-google-fonts/space-grotesk": "^0.4.1",
+    "@napi-rs/canvas": "^1.0.9",
+    "gifenc": "^1.0.3"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}
