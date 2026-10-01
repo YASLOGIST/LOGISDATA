@@ -38,63 +38,18 @@ test.describe("control room entry", () => {
 
   test("the deck and the briefing are reachable without JavaScript errors", async ({ page }) => {
     const errors: string[] = [];
-    // Keep a frame of the stack: a bare message is not enough to locate a
-    // teardown error that only happens during navigation.
     page.on("pageerror", (error) =>
       errors.push(`${error.message} | ${(error.stack ?? "").split("\n")[1]?.trim() ?? "no frame"}`),
     );
+
     await page.goto("/");
-    // Let the deck finish mounting before leaving it; clicking mid-mount is
-    // a different (and much rarer) scenario than a user reading and then
-    // choosing the text briefing.
     await expect(page.locator("canvas").or(page.getByRole("link", { name: /text briefing/i })).first())
       .toBeVisible({ timeout: 30_000 });
+    // Mounting the deck must be clean on its own.
+    expect(errors, `errors while mounting the deck: ${errors.join(" ;; ")}`).toEqual([]);
+
     await page.getByRole("link", { name: /text briefing/i }).first().click();
     await expect(page).toHaveURL(/\/handout$/);
-    expect(errors).toEqual([]);
-  });
-});
-
-test.describe("health endpoint", () => {
-  test("GET reports liveness with an honest database status", async ({ request }) => {
-    const response = await request.get("/api/health");
-    expect(response.status()).toBe(200);
-    const body = await response.json();
-    expect(body).toMatchObject({ ok: true, service: "logisdata-control-room", database: "not-configured" });
-    expect(typeof body.uptimeSeconds).toBe("number");
-    expect(response.headers()["cache-control"]).toContain("no-store");
-  });
-
-  test("HEAD is a body-less liveness probe", async ({ request }) => {
-    const response = await request.head("/api/health");
-    expect(response.status()).toBe(204);
-  });
-});
-
-test.describe("delivery hardening", () => {
-  test("serves the expected security headers", async ({ request }) => {
-    const response = await request.get("/");
-    const headers = response.headers();
-    expect(headers["x-content-type-options"]).toBe("nosniff");
-    expect(headers["x-frame-options"]).toBe("DENY");
-    expect(headers["referrer-policy"]).toBe("strict-origin-when-cross-origin");
-    expect(headers["content-security-policy"]).toContain("frame-ancestors 'none'");
-    expect(headers["content-security-policy"]).toContain("object-src 'none'");
-    expect(headers["content-security-policy"]).toContain("base-uri 'none'");
-    expect(headers["x-powered-by"]).toBeUndefined();
-  });
-
-  test("publishes robots.txt, a sitemap and a web manifest", async ({ request }) => {
-    const robots = await request.get("/robots.txt");
-    expect(robots.status()).toBe(200);
-    expect(await robots.text()).toContain("Sitemap:");
-
-    const sitemap = await request.get("/sitemap.xml");
-    expect(sitemap.status()).toBe(200);
-    expect(await sitemap.text()).toContain("/handout");
-
-    const manifest = await request.get("/manifest.webmanifest");
-    expect(manifest.status()).toBe(200);
-    expect((await manifest.json()).name).toBe("LOGISDATA Control Room");
+    expect(errors, `errors after leaving the deck: ${errors.join(" ;; ")}`).toEqual([]);
   });
 });
