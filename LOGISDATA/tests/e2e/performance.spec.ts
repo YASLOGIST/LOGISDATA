@@ -40,12 +40,21 @@ test.describe("performance budget", () => {
       const length = Number(response.headers()["content-length"] ?? 0);
       transferred += Number.isFinite(length) ? length : 0;
     });
-    await page.goto("/", { waitUntil: "networkidle" });
+    // The WebGL text worker and capability probe can keep a connection open
+    // after the document is interactive, so networkidle is not a stable
+    // readiness signal for this route. DOMContentLoaded still covers the
+    // initial document and script requests; the budget measures every JS
+    // response that arrives during that load.
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("canvas").or(page.getByRole("link", { name: /text briefing/i })).first())
+      .toBeVisible({ timeout: 30_000 });
     expect(transferred, `initial JS payload ${transferred} bytes`).toBeLessThan(BUDGET.initialJsBytes);
   });
 
   test("the landing page does not shift layout", async ({ page }) => {
-    await page.goto("/", { waitUntil: "networkidle" });
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await expect(page.locator("canvas").or(page.getByRole("link", { name: /text briefing/i })).first())
+      .toBeVisible({ timeout: 30_000 });
     const cls = await page.evaluate(
       () =>
         new Promise<number>((resolve) => {

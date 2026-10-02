@@ -215,10 +215,12 @@ export function Presentation() {
       cancelAnimationFrame(fillFrame);
       observer?.disconnect();
       element.removeEventListener("scroll", sync);
-      if (scrollHostRef.current === host) {
-        host.remove();
-        scrollHostRef.current = null;
-      }
+      // Do not remove the portal host here: React must first unmount the
+      // portal children, otherwise navigation can race DOM ownership and
+      // report a NotFoundError. ScrollControls removes the whole element on
+      // unmount; a future bridge rebind replaces this host after React has
+      // reconciled the old portal.
+      if (scrollHostRef.current === host) scrollHostRef.current = null;
       if (scrollElement.current === element) scrollElement.current = null;
     };
   }, []);
