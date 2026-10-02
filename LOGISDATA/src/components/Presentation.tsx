@@ -12,10 +12,12 @@ import {
   Keyboard,
   Languages,
   Moon,
+  RotateCcw,
   Sun,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { WebGLRenderer } from "three";
 import { presentationCopy } from "@/lib/data";
 import { downloadExecutiveReportJson } from "@/lib/export";
 import { t, text } from "@/lib/i18n";
@@ -139,7 +141,10 @@ export function Presentation() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [pageVisible, setPageVisible] = useState(true);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [contextLost, setContextLost] = useState(false);
+  const [canvasGeneration, setCanvasGeneration] = useState(0);
   const [scrollHost, setScrollHost] = useState<HTMLElement | null>(null);
+  const contextCleanupRef = useRef<(() => void) | null>(null);
 
   const scrollElement = useRef<HTMLDivElement | null>(null);
   const scrollHostRef = useRef<HTMLElement | null>(null);
@@ -319,6 +324,35 @@ export function Presentation() {
     [activeSection, language],
   );
 
+  // WebGL context loss is recoverable in modern browsers, but the renderer
+  // can remain black while it is being restored. Own the DOM listeners here
+  // so the UI never leaves the operator staring at an unresponsive canvas.
+  const handleCanvasCreated = useCallback(({ gl }: { gl: WebGLRenderer }) => {
+    contextCleanupRef.current?.();
+    const canvas = gl.domElement;
+    const onContextLost = (event: Event) => {
+      event.preventDefault();
+      setContextLost(true);
+    };
+    const onContextRestored = () => setContextLost(false);
+    canvas.addEventListener("webglcontextlost", onContextLost, false);
+    canvas.addEventListener("webglcontextrestored", onContextRestored, false);
+    contextCleanupRef.current = () => {
+      canvas.removeEventListener("webglcontextlost", onContextLost);
+      canvas.removeEventListener("webglcontextrestored", onContextRestored);
+    };
+    setContextLost(false);
+  }, []);
+
+  useEffect(() => () => contextCleanupRef.current?.(), []);
+
+  const recoverCanvas = useCallback(() => {
+    contextCleanupRef.current?.();
+    contextCleanupRef.current = null;
+    setContextLost(false);
+    setCanvasGeneration((generation) => generation + 1);
+  }, []);
+
   return (
     <motion.div
       className="presentation-root"
@@ -471,6 +505,8 @@ export function Presentation() {
 
       <div className="canvas-frame">
         <Canvas
+          key={canvasGeneration}
+          onCreated={handleCanvasCreated}
           dpr={device.dpr}
           camera={{ fov: 42, near: 0.1, far: 100, position: [0, 1.25, 10.5] }}
           gl={{ antialias: device.antialias, alpha: false, powerPreference: "high-performance" }}
@@ -498,6 +534,20 @@ export function Presentation() {
           <Preload all />
         </Canvas>
       </div>
+
+      {contextLost && (
+        <div className="canvas-recovery" role="alert" aria-live="assertive">
+          <div className="canvas-recovery-card">
+            <span className="eyebrow">{t("recovery", language)}</span>
+            <strong>{language === "en" ? "3D renderer paused" : "تم إيقاف العارض ثلاثي الأبعاد"}</strong>
+            <p>{language === "en" ? "The graphics context was interrupted. The briefing data is safe." : "تمت مقاطعة سياق الرسومات. بيانات الإحاطة محفوظة."}</p>
+            <button type="button" className="intro-enter-btn" onClick={recoverCanvas}>
+              <RotateCcw size={14} aria-hidden="true" />
+              <span>{t("retryEngine", language)}</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       <DeckOverlay
         language={language}
