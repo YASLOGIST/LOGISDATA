@@ -146,6 +146,9 @@ export function Presentation() {
   const [scrollHost, setScrollHost] = useState<HTMLElement | null>(null);
   const contextCleanupRef = useRef<(() => void) | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const activeSectionRef = useRef(activeSection);
+  const toggleLanguageRef = useRef(toggleLanguage);
+  const toggleThemeRef = useRef(toggleTheme);
 
   const scrollElement = useRef<HTMLDivElement | null>(null);
   const scrollHostRef = useRef<HTMLElement | null>(null);
@@ -185,9 +188,13 @@ export function Presentation() {
         // ResizeObserver snapshot.
         measure();
         const metrics = scrollMetricsRef.current;
-        setActiveSection(
-          sectionFromScrollTop(element.scrollTop, metrics.scrollHeight, metrics.clientHeight),
+        const nextSection = sectionFromScrollTop(
+          element.scrollTop,
+          metrics.scrollHeight,
+          metrics.clientHeight,
         );
+        activeSectionRef.current = nextSection;
+        setActiveSection(nextSection);
       };
 
       const observer =
@@ -263,6 +270,11 @@ export function Presentation() {
   }, []);
 
   useEffect(() => {
+    toggleLanguageRef.current = toggleLanguage;
+    toggleThemeRef.current = toggleTheme;
+  }, [toggleLanguage, toggleTheme]);
+
+  useEffect(() => {
     const onHashChange = () => {
       const target = sectionIndexFromHash(window.location.hash);
       if (target !== null) goToSection(target);
@@ -289,12 +301,12 @@ export function Presentation() {
       }
       if (event.key.toLowerCase() === "t") {
         event.preventDefault();
-        toggleTheme();
+        toggleThemeRef.current();
         return;
       }
       if (event.key.toLowerCase() === "l") {
         event.preventDefault();
-        toggleLanguage();
+        toggleLanguageRef.current();
         return;
       }
 
@@ -307,7 +319,7 @@ export function Presentation() {
       const requestedSection = sectionIndexFromHash(window.location.hash);
       const from = requestedSection ?? (element
         ? sectionFromScrollTop(element.scrollTop, element.scrollHeight, element.clientHeight)
-        : (pendingSection.current ?? activeSection));
+        : (pendingSection.current ?? activeSectionRef.current));
 
       if (NEXT_KEYS.has(event.key)) destination = from + 1;
       else if (PREV_KEYS.has(event.key)) destination = from - 1;
@@ -333,7 +345,7 @@ export function Presentation() {
       document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [activeSection, goToSection, toggleLanguage, toggleTheme]);
+  }, [goToSection]);
 
   const frameloop = !pageVisible ? "never" : reduced ? "demand" : "always";
   const progress = SECTION_COUNT > 1 ? activeSection / (SECTION_COUNT - 1) : 1;
