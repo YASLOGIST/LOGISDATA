@@ -180,10 +180,9 @@ export function Presentation() {
       const requested = pendingSection.current;
       if (requested !== null) {
         pendingSection.current = null;
-        element.scrollTo({
-          top: scrollTopForSection(requested, element.scrollHeight, element.clientHeight),
-          behavior: "auto",
-        });
+        const targetTop = scrollTopForSection(requested, element.scrollHeight, element.clientHeight);
+        element.scrollTo({ top: targetTop, behavior: "auto" });
+        htmlTrackRef.current?.style.setProperty("transform", `translate3d(0, -${targetTop}px, 0)`);
         /*
          * drei ignores the very first scroll event it sees (it sets
          * `scrollTop = 1` on mount to allow upward scrolling, and suppresses
@@ -222,11 +221,13 @@ export function Presentation() {
       pendingSection.current = target;
       return;
     }
-    // Deliberately an instant scroll: drei damps its own offset, and both
-    // the camera and the translated HTML follow that damped value, so the
-    // visible transition is still smooth. Native smooth scrolling would
-    // additionally fight the damping and can be interrupted mid-flight.
-    element.scrollTo({ top: scrollTopForSection(target, element.scrollHeight, element.clientHeight), behavior: "auto" });
+    // Deliberately an instant native jump: the camera and scene still ease
+    // toward the new position, while the readable layer parks on the exact
+    // section immediately. Native smooth scrolling would fight ScrollControls'
+    // damping and can be interrupted mid-flight.
+    const targetTop = scrollTopForSection(target, element.scrollHeight, element.clientHeight);
+    element.scrollTo({ top: targetTop, behavior: "auto" });
+    htmlTrackRef.current?.style.setProperty("transform", `translate3d(0, -${targetTop}px, 0)`);
   }, []);
 
   // --- Deep linking -------------------------------------------------------
