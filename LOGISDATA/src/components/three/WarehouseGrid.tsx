@@ -1,6 +1,6 @@
 "use client";
 
-import { Html, useScroll } from "@react-three/drei";
+import { useScroll } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
@@ -8,7 +8,7 @@ import { presentationCopy, warehouseBins } from "@/lib/data";
 import { text } from "@/lib/i18n";
 import type { Language, ThemeMode } from "@/lib/types";
 import { easeApproach, getSectionApproach } from "@/lib/sceneFocus";
-import { FocusFadeLabel } from "./FocusFadeLabel";
+import { FocusFadeText } from "./FocusFadeText";
 
 const SECTION_INDEX = 4;
 
@@ -92,17 +92,30 @@ export function WarehouseGrid({ language, theme }: WarehouseGridProps) {
         <meshBasicMaterial color="#4de1c1" wireframe transparent opacity={0.12} side={THREE.DoubleSide} />
       </mesh>
       {problemBins.map((bin) => (
-        <Html key={bin.id} position={[bin.x, bin.y + 0.45, bin.z - 0.2]} distanceFactor={8} center>
-          <FocusFadeLabel sectionIndex={SECTION_INDEX} className="scene-label scene-label-warning scene-label-shelf">
-            <span className="scene-label-dot" />
-            <span>{text(bin.sku, language)}</span>
-            <strong>{text(presentationCopy.warehouse.callout, language)}</strong>
-          </FocusFadeLabel>
-        </Html>
+        <FocusFadeText
+          key={bin.id}
+          position={[bin.x, bin.y + 0.45, bin.z - 0.2]}
+          sectionIndex={SECTION_INDEX}
+          fontSize={0.16}
+          color="#fb5b5b"
+          outlineWidth={0.01}
+          outlineColor="#06121d"
+          textAlign="center"
+        >
+          {text(bin.sku, language)}{"\n"}
+          {text(presentationCopy.warehouse.callout, language)}
+        </FocusFadeText>
       ))}
-      <Html position={[4.4, 2.35, 0]} center distanceFactor={8}>
-        <FocusFadeLabel sectionIndex={SECTION_INDEX} className="scene-label scene-label-good"><span className="scene-label-dot" /><span>{text(presentationCopy.warehouse.scanLabel, language)}</span></FocusFadeLabel>
-      </Html>
+      <FocusFadeText
+        position={[4.4, 2.35, 0]}
+        sectionIndex={SECTION_INDEX}
+        fontSize={0.18}
+        color="#4de1c1"
+        outlineWidth={0.012}
+        outlineColor="#06121d"
+      >
+        {text(presentationCopy.warehouse.scanLabel, language)}
+      </FocusFadeText>
     </group>
   );
 }

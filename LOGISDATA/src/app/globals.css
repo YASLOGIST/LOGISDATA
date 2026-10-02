@@ -110,6 +110,34 @@ button:focus-visible {
   height: 100% !important;
 }
 
+/*
+ * The readable deck is portaled into this in-flow host inside drei's real
+ * scroll element. Native scrolling then moves the HTML and 3D layers from
+ * the same source, without a second React root or a transform bridge that
+ * can drift from the browser's viewport. The host itself is transparent to
+ * pointer input so ScrollControls keeps ownership of wheel/touch gestures;
+ * actual controls opt back into hit testing below.
+ */
+.html-deck-host {
+  position: relative;
+  z-index: 10;
+  flex: none;
+  width: 100%;
+  height: 500vh;
+  pointer-events: none;
+}
+
+.html-deck-host :where(button, a) {
+  pointer-events: auto;
+}
+
+/* Keep table surfaces transparent to wheel/touch input so the underlying
+ * ScrollControls element remains the scroll target. They are still keyboard
+ * focusable because pointer-events does not affect tab navigation. */
+.html-deck-host .table-overflow {
+  pointer-events: none;
+}
+
 .top-navigation {
   position: fixed;
   top: 0;
@@ -262,15 +290,11 @@ button:focus-visible {
    * promises the engine that nothing inside can affect layout, paint or
    * style outside it, so a framer-motion opacity/transform change on the
    * entering section no longer invalidates the other four full-viewport
-   * subtrees stacked in drei's overlay.
+   * subtrees stacked in the native scroll host.
    *
-   * ARCHIVED (not deleted) -- the two declarations below were dead:
-   *     scroll-snap-align: start;
-   *     scroll-snap-stop: always;
-   * drei renders this markup into its `position: fixed` overlay root,
-   * which is outside the scroll container's scrollable flow, so these
-   * elements were never snap targets. The matching `scroll-snap-type`
-   * on the container has been dropped in Presentation.tsx.
+   * Scroll snapping is intentionally omitted: the briefing follows the
+   * browser's continuous native scroll position, while nav and keyboard
+   * jumps choose exact section offsets explicitly.
    */
   contain: layout paint style;
 }

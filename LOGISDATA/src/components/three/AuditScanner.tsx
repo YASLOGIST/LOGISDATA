@@ -1,13 +1,14 @@
 "use client";
 
-import { Html, Line, useScroll } from "@react-three/drei";
+import { Line, useScroll } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { presentationCopy } from "@/lib/data";
 import { text } from "@/lib/i18n";
-import { applyLabelFocus, easeApproach, getSectionApproach, getSectionFocus } from "@/lib/sceneFocus";
+import { easeApproach, getSectionApproach } from "@/lib/sceneFocus";
 import type { Language, ThemeMode } from "@/lib/types";
+import { FocusFadeText } from "./FocusFadeText";
 
 const SECTION_INDEX = 1;
 
@@ -28,7 +29,6 @@ export function AuditScanner({ language, theme, animate = true }: AuditScannerPr
   const scroll = useScroll();
   const beamRef = useRef<THREE.Group>(null);
   const beamMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
-  const labelRef = useRef<HTMLDivElement>(null);
   const [isVerified, setIsVerified] = useState(false);
   const frameColor = useMemo(() => (theme === "dark" ? "#c4d6e3" : "#0f2942"), [theme]);
 
@@ -48,7 +48,6 @@ export function AuditScanner({ language, theme, animate = true }: AuditScannerPr
     }
     const nextVerified = sectionProgress > 0.68;
     setIsVerified((previous) => previous === nextVerified ? previous : nextVerified);
-    applyLabelFocus(labelRef.current, getSectionFocus(scroll.offset, SECTION_INDEX));
   });
 
   return (
@@ -102,18 +101,18 @@ export function AuditScanner({ language, theme, animate = true }: AuditScannerPr
         </mesh>
       </group>
 
-      <Html position={[0, 2.75, 0]} center distanceFactor={8}>
-        <div
-          ref={labelRef}
-          className={`scene-label ${isVerified ? "scene-label-good" : "scene-label-warning"}`}
-          style={{ opacity: 0, visibility: "hidden" }}
-          aria-hidden="true"
-        >
-          <span className="scene-label-dot" />
-          <span>{text(presentationCopy.audit.scannerLabel, language)}</span>
-          <strong>{isVerified ? text(presentationCopy.audit.verified, language) : text(presentationCopy.audit.warning, language)}</strong>
-        </div>
-      </Html>
+      <FocusFadeText
+        position={[0, 2.75, 0]}
+        sectionIndex={SECTION_INDEX}
+        fontSize={0.18}
+        color={isVerified ? "#4de1c1" : "#f59e0b"}
+        outlineWidth={0.012}
+        outlineColor="#06121d"
+        textAlign="center"
+      >
+        {text(presentationCopy.audit.scannerLabel, language)}{"\n"}
+        {isVerified ? text(presentationCopy.audit.verified, language) : text(presentationCopy.audit.warning, language)}
+      </FocusFadeText>
     </group>
   );
 }

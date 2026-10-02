@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
 const WCAG = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
 test.describe("accessibility", () => {
-  test("the cover screen has no WCAG 2.1 AA violations", async ({ page }) => {
+  test("the control room entry has no WCAG 2.1 AA violations", async ({ page }) => {
     await page.goto("/");
     const results = await new AxeBuilder({ page }).withTags(WCAG).analyze();
     expect(results.violations).toEqual([]);

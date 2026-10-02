@@ -1,13 +1,13 @@
 "use client";
 
-import { Float, Html, Line } from "@react-three/drei";
+import { Float, Line } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { supplyEdges, supplyNodes, presentationCopy } from "@/lib/data";
 import { text } from "@/lib/i18n";
 import type { Language, ThemeMode } from "@/lib/types";
-import { FocusFadeLabel } from "./FocusFadeLabel";
+import { FocusFadeText } from "./FocusFadeText";
 
 const SECTION_INDEX = 0;
 
@@ -63,12 +63,16 @@ function SupplyNodeMesh({ node, theme, language, animate }: SupplyNodeMeshProps)
           <lineBasicMaterial color={structural} transparent opacity={0.18} />
         </lineSegments>
         {node.id === "yard" && (
-          <Html center distanceFactor={8} position={[0, 0.35, 0]}>
-            <FocusFadeLabel sectionIndex={SECTION_INDEX} className="scene-label scene-label-warning">
-              <span className="scene-label-dot" />
-              <span>{text(presentationCopy.hero.networkLabel, language)}</span>
-            </FocusFadeLabel>
-          </Html>
+          <FocusFadeText
+            position={[0, 0.35, 0]}
+            sectionIndex={SECTION_INDEX}
+            fontSize={0.16}
+            color="#f59e0b"
+            outlineWidth={0.01}
+            outlineColor="#06121d"
+          >
+            {text(presentationCopy.hero.networkLabel, language)}
+          </FocusFadeText>
         )}
       </group>
     </Float>
@@ -93,11 +97,16 @@ export function SupplyNetwork({ language, theme, animate = true }: SupplyNetwork
         <Line key={`edge-${index}`} points={points} color={lineColor} transparent opacity={0.65} lineWidth={0.8} />
       ))}
       {supplyNodes.map((node) => <SupplyNodeMesh key={node.id} node={node} theme={theme} language={language} animate={animate} />)}
-      <Html position={[-3.7, 1.65, 0]} center distanceFactor={8}>
-        <FocusFadeLabel sectionIndex={SECTION_INDEX} className="scene-label scene-label-muted">
-          <span>{text(supplyNodes[0].label, language)}</span><span className="scene-label-value">/ {text(presentationCopy.hero.verifiedLabel, language)}</span>
-        </FocusFadeLabel>
-      </Html>
+      <FocusFadeText
+        position={[-3.7, 1.65, 0]}
+        sectionIndex={SECTION_INDEX}
+        fontSize={0.16}
+        color={theme === "dark" ? "#c4d6e3" : "#0f2942"}
+        outlineWidth={0.01}
+        outlineColor="#06121d"
+      >
+        {text(supplyNodes[0].label, language)} / {text(presentationCopy.hero.verifiedLabel, language)}
+      </FocusFadeText>
     </group>
   );
 }
