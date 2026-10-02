@@ -277,4 +277,4 @@ V8 retained the visual system and corrected keyboard/state semantics that became
 - remaining visible theme, audio, and node-inspection chrome is localized; node triggers announce their dialog behavior;
 - muted success events no longer allocate follow-up audio timers.
 
-Measured final state: **213/213 unit tests in 16 files**, coverage **89.78% statements / 85.83% branches / 89.57% functions / 92.55% lines**, 9-route production build pass, 0 audit findings, and **202,528 B gzip** against the unchanged 205,000 B shell budget. Playwright now defines 60 checks: 2 request-only checks pass here and 58 browser checks remain blocked by the absent Chromium executable.
+Measured final state: **213/213 unit tests in 16 files**, coverage **89.78% statements / 85.83% branches / 89.57% functions / 92.55% lines**, 9-route production build pass, 0 audit findings, and **202,616 B gzip** against the unchanged 205,000 B shell budget. Playwright now defines 60 checks: 2 request-only checks pass here and 58 browser checks remain blocked by the absent Chromium executable.

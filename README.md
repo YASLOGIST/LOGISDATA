@@ -43,7 +43,7 @@
 | **Database** | optional | the presentation is fully functional with no `DATABASE_URL` |
 | **Source surface** | 53 TypeScript/TSX modules (7,016 lines) + 3,138 lines of tokenized CSS | measured from `src/` on 2026-10-02 |
 | **Automated coverage** | 213 passing unit tests + 60 configured Playwright checks | unit gates pass locally; browser checks run when Chromium is available |
-| **Initial shell payload** | 202,528 B gzip | measured against the 205,000 B production budget |
+| **Initial shell payload** | 202,616 B gzip | measured against the 205,000 B production budget |
 | **Known vulnerabilities** | 0 (`npm audit`) | pinned toolchain plus an `esbuild` override |
 
 ---
@@ -414,7 +414,7 @@ curl -s localhost:3000/api/health | jq
 | `npm run test` | 213 Vitest tests in 16 files | ✅ |
 | `npm run test:coverage` | 80% statements/branches/functions and 85% lines; current measured result 89.78% / 85.83% / 89.57% / 92.55% | ✅ |
 | `npm run test:e2e` | 60 configured Playwright checks across desktop, reduced-motion and mobile—including axe accessibility and performance budgets; requires Chromium | ✅ when browser is available |
-| `npm run budget` | Gzipped landing payload against a 205,000 B ceiling; current measured result 202,528 B | ✅ |
+| `npm run budget` | Gzipped landing payload against a 205,000 B ceiling; current measured result 202,616 B | ✅ |
 | `npm run check` | Types, lint, unit tests, and production build in sequence | ✅ |
 
 ---

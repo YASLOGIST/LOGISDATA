@@ -4,6 +4,7 @@ import { expect, test, type Page } from "@playwright/test";
 async function enterControlRoom(page: Page, url = "/") {
   await page.goto(url);
   await expect(page.locator("canvas")).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator(".presentation-root")).toHaveAttribute("data-interactive", "true");
 }
 
 test.describe("section navigation", () => {

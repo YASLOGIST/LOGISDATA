@@ -145,6 +145,7 @@ export function Presentation() {
   const [canvasGeneration, setCanvasGeneration] = useState(0);
   const [scrollHost, setScrollHost] = useState<HTMLElement | null>(null);
   const contextCleanupRef = useRef<(() => void) | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
   const scrollElement = useRef<HTMLDivElement | null>(null);
   const scrollHostRef = useRef<HTMLElement | null>(null);
@@ -311,9 +312,12 @@ export function Presentation() {
       }
     };
 
+    const root = rootRef.current;
     document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("keydown", onKeyDown);
+    root?.setAttribute("data-interactive", "true");
     return () => {
+      root?.removeAttribute("data-interactive");
       document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("keydown", onKeyDown);
     };
@@ -357,6 +361,7 @@ export function Presentation() {
 
   return (
     <motion.div
+      ref={rootRef}
       className="presentation-root"
       data-theme={theme}
       data-tier={device.tier}
@@ -415,6 +420,7 @@ export function Presentation() {
             className={`control-button ${telemetryOpen ? "btn-active-glow" : ""}`}
             onClick={() => setTelemetryOpen((v) => !v)}
             aria-label={t("telemetryToggle", language)}
+            title={t("telemetryToggle", language)}
             aria-controls="telemetry-panel"
             aria-expanded={telemetryOpen}
           >
@@ -428,6 +434,7 @@ export function Presentation() {
             className="control-button"
             onClick={() => setCalculatorOpen(true)}
             aria-label={t("calculatorOpen", language)}
+            title={t("calculatorOpen", language)}
             aria-haspopup="dialog"
           >
             <Calculator size={15} aria-hidden="true" />
@@ -450,7 +457,12 @@ export function Presentation() {
           <AudioToggle language={language} />
 
           {/* Handout View Link */}
-          <a className="control-button" href="/handout">
+          <a
+            className="control-button"
+            href="/handout"
+            aria-label={t("openHandout", language)}
+            title={t("openHandout", language)}
+          >
             <FileText size={15} aria-hidden="true" />
             <span>{t("openHandout", language)}</span>
           </a>
@@ -461,6 +473,7 @@ export function Presentation() {
             type="button"
             onClick={() => setHelpOpen(true)}
             aria-label={t("shortcuts", language)}
+            title={t("shortcuts", language)}
             aria-haspopup="dialog"
           >
             <Keyboard size={15} aria-hidden="true" />
@@ -473,6 +486,7 @@ export function Presentation() {
             type="button"
             onClick={toggleLanguage}
             aria-label={text(presentationCopy.nav.language, language)}
+            title={text(presentationCopy.nav.language, language)}
           >
             <Languages size={15} aria-hidden="true" />
             <span>{language === "en" ? "AR" : "EN"}</span>
@@ -484,6 +498,7 @@ export function Presentation() {
             type="button"
             onClick={toggleTheme}
             aria-label={text(presentationCopy.nav.theme, language)}
+            title={text(presentationCopy.nav.theme, language)}
             aria-pressed={theme === "light"}
           >
             {theme === "dark" ? <Sun size={15} aria-hidden="true" /> : <Moon size={15} aria-hidden="true" />}
