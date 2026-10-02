@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useId } from "react";
+import { useId } from "react";
 import { AlertTriangle, CheckCircle, Network, Radio, Shield, Truck, X } from "lucide-react";
 import { supplyNodeDetails } from "@/lib/simulation";
 import { integer, number, percent, text, t } from "@/lib/i18n";
+import { useNativeDialog } from "@/lib/useNativeDialog";
 import type { Language } from "@/lib/types";
 
 interface NodeInspectorModalProps {
@@ -14,24 +15,21 @@ interface NodeInspectorModalProps {
 
 export function NodeInspectorModal({ nodeId, onClose, language }: NodeInspectorModalProps) {
   const titleId = useId();
+  const node = nodeId ? supplyNodeDetails[nodeId] : undefined;
+  const { dialogRef, closeDialog, handleDialogClose } = useNativeDialog(Boolean(node), onClose);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  if (!nodeId) return null;
-  const node = supplyNodeDetails[nodeId];
   if (!node) return null;
 
   const isLeak = node.status === "leak";
   const isPhantom = node.status === "phantom";
 
   return (
-    <div className="inspector-overlay" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+    <dialog
+      ref={dialogRef}
+      className="inspector-overlay"
+      onClose={handleDialogClose}
+      aria-labelledby={titleId}
+    >
       <div className="inspector-modal">
         <div className="inspector-head">
           <div className="inspector-title-group">
@@ -44,8 +42,9 @@ export function NodeInspectorModal({ nodeId, onClose, language }: NodeInspectorM
           <button
             type="button"
             className="control-button"
-            onClick={onClose}
+            onClick={closeDialog}
             aria-label={t("closeDialog", language)}
+            data-dialog-initial-focus
           >
             <X size={15} aria-hidden="true" />
           </button>
@@ -98,6 +97,6 @@ export function NodeInspectorModal({ nodeId, onClose, language }: NodeInspectorM
           </div>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

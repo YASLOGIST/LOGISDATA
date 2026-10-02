@@ -27,7 +27,7 @@ export function AudioToggle({ language }: AudioToggleProps) {
       aria-pressed={enabled}
     >
       {enabled ? <Volume2 size={15} aria-hidden="true" /> : <VolumeX size={15} aria-hidden="true" />}
-      <span>{enabled ? "SFX" : "MUTE"}</span>
+      <span>{t(enabled ? "soundShortOn" : "soundShortOff", language)}</span>
     </button>
   );
 }

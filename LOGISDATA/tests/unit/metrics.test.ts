@@ -61,4 +61,12 @@ describe("warehouseSummary", () => {
     expect(warehouseSummary.accuracy).toBeCloseTo(warehouseSummary.audited / warehouseSummary.total, 3);
     expect(warehouseSummary.accuracy).toBeGreaterThan(0.5);
   });
+
+  it("accepts scenario-specific and empty bin sets", () => {
+    const audited = selectors.summariseWarehouse(
+      warehouseBins.map((bin) => ({ ...bin, status: "audited" as const })),
+    );
+    expect(audited).toMatchObject({ mismatches: 0, audited: warehouseBins.length, accuracy: 1 });
+    expect(selectors.summariseWarehouse([])).toEqual({ total: 0, mismatches: 0, audited: 0, accuracy: 1 });
+  });
 });

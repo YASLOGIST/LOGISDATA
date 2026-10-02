@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { t } from "@/lib/i18n";
+import { useNativeDialog } from "@/lib/useNativeDialog";
 import type { Language } from "@/lib/types";
 
 interface KeyboardHelpProps {
@@ -31,20 +31,19 @@ const SHORTCUTS = [
  * hand-rolled (and usually incorrect) JavaScript.
  */
 export function KeyboardHelp({ open, language, onClose }: KeyboardHelpProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
-  }, [open]);
+  const { dialogRef, closeDialog, handleDialogClose } = useNativeDialog(open, onClose);
 
   return (
-    <dialog ref={dialogRef} className="shortcut-dialog" onClose={onClose} aria-labelledby="shortcut-title">
+    <dialog ref={dialogRef} className="shortcut-dialog" onClose={handleDialogClose} aria-labelledby="shortcut-title">
       <div className="shortcut-dialog-head">
         <h2 id="shortcut-title">{t("shortcuts", language)}</h2>
-        <button type="button" className="control-button" onClick={onClose} aria-label={t("closeDialog", language)}>
+        <button
+          type="button"
+          className="control-button"
+          onClick={closeDialog}
+          aria-label={t("closeDialog", language)}
+          data-dialog-initial-focus
+        >
           <X size={15} aria-hidden="true" />
         </button>
       </div>

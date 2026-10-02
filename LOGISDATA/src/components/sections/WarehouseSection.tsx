@@ -116,7 +116,7 @@ function WarehouseSectionImpl({ language, active, reduced, scenario = "active-au
             {text(copy.audited, language)} · {integer(auditedBinsCount, language)}
           </span>
           <span className="warehouse-footer-note">{text(presentationCopy.footer.statement, language)}</span>
-          <DatasetExport dataset="warehouse-control" language={language} />
+          <DatasetExport dataset="warehouse-control" language={language} scenario={scenario} />
         </motion.div>
         <p className="warehouse-illustrative">{text(presentationCopy.footer.illustrative, language)}</p>
       </div>

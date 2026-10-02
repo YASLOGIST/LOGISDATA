@@ -1,7 +1,9 @@
 # v2 → v3 — Audit, Upgrade and Verification Report
 
+> **Historical scope.** Sections 1–6 preserve the measured v2 → v3 record and its then-current package target (`3.0.0`). The current package is `3.1.0`; the 2026-10-02 V7 and V8 hardening results are summarized in §7–8 and recorded in full in [`UPGRADE_LOG.md`](../UPGRADE_LOG.md).
+
 Baseline: commit `9ae5a8a` ("LOGISDATA Supply Chain Control Room", package version 2.0.0).
-Target: this branch, package version 3.0.0.
+Historical target: the v3 branch at package version 3.0.0.
 
 > Follow-up hardening on this branch removes the remaining drei HTML portals / React 19
 > second-root failure mode. The readable deck now renders in the main React tree
@@ -61,7 +63,7 @@ Fixed by making one function the single source of truth (`pagePositionFromOffset
 1. **`/handout` — the deck as a readable document.** A statically prerendered, printable, screen-reader-first version of the entire audit: three data tables with captions and row headers, the warehouse findings, a table of contents and print styles. This is also what no-WebGL and reduced-motion visitors are pointed to. It makes the content crawlable and citable, which a canvas never is.
 2. **CSV export of every dataset on screen.** RFC 4180 output (CRLF, correct quoting), localised, date-stamped filenames. An audit deck whose numbers cannot leave the slide is not an audit deck.
 3. **Full keyboard control and deep linking.** Arrows / Page / Space / Home / End / `1`–`5` / `T` / `L` / `?`, a native `<dialog>` shortcut sheet, and bidirectional hash deep links so any section can be shared.
-4. **Ambient data-stream field — the visual upgrade.** 900 / 420 / 0 GPU-animated points (tier-dependent) drifting through the scene in **one draw call**, with all motion in a vertex shader so the CPU does nothing per frame. Off entirely under reduced motion. It reads as live telemetry moving through the facility rather than decoration.
+4. **Ambient data-stream field — the visual upgrade.** 900 / 420 / 0 GPU-animated points (tier-dependent) drifting through the scene in **one draw call**, with all motion in a vertex shader so the CPU does nothing per frame. Off entirely under reduced motion. It reads as a simulated operational signal moving through the facility rather than decoration; the current UI labels fixture telemetry explicitly as a simulation.
 5. **Adaptive quality tiering.** dpr clamp, antialiasing and particle budget all derived from cores / memory / viewport / Save-Data / connection type.
 6. **Theme and language persistence**, applied before first paint so neither flashes.
 
@@ -231,3 +233,48 @@ npm run test:e2e
 7. **Verifying the Docker image builds and runs.** *Reason:* no Docker daemon in this sandbox. The Dockerfile follows the documented Next.js standalone pattern and the build step it depends on (`NEXT_OUTPUT=standalone`) was exercised locally, but the image itself is unbuilt.
 
 Everything else that was identified has been implemented.
+
+---
+
+## 7. v3.1 V7 hardening addendum — 2026-10-02
+
+This addendum supersedes historical test counts and current-state claims above without rewriting the v2 → v3 measurement record.
+
+### Shipped
+
+- Scenario-selected freight, demand, route, warehouse, and executive evidence exports; executive JSON includes export time, language, scenario, illustrative classification, bilingual disclosure, summaries, and theatre rows.
+- Explicit bilingual fixture-simulation telemetry labels; the closed drawer schedules no interval and plays no audio.
+- Point-of-use bilingual calculator assumptions and “illustrative, not a forecast” disclosure, with formulas and reported conclusions unchanged.
+- Package-derived health version with optional deployment override; tested GET, HEAD, database-state, and no-store behavior.
+- Native modal lifecycle for calculator, node inspector, and keyboard help; deterministic initial focus and invoker-focus restoration.
+- Scenario/filter-derived audit summaries, localized empty results, and `aria-sort` on every sortable route header.
+- Removal of the redundant `/_next/static` cache override; Next.js owns immutable hashed-asset caching.
+
+### Current measured state
+
+| Gate | 2026-10-02 result |
+|---|---|
+| Package | `3.1.0` |
+| TypeScript / ESLint | 0 errors / 0 findings |
+| Unit suite | 201/201 passing in 15 files |
+| Coverage | 89.59% statements · 85.27% branches · 88.71% functions · 92.45% lines |
+| Production build | 9 routes, pass, no baseline cache warning |
+| Initial shell budget | 202,325 B gzip / 205,000 B, pass |
+| Static document | 14,151 B uncompressed, pass against 40,000 B ceiling |
+| Dependency audit | 0 known vulnerabilities across 558 installed packages |
+| Production probes | `/`, `/handout`, health, robots, sitemap, manifest: HTTP 200; health HEAD: 204 |
+| Playwright | 2/2 request-only checks pass; 57 browser checks unmeasured because Chromium is absent and CDN installation failed with `ECONNRESET` |
+
+The complete inference ledger, same-protocol baseline/final comparison, invariant gates, truth classifications, tribunal, and residual risks live in [`UPGRADE_LOG.md`](../UPGRADE_LOG.md).
+
+## 8. V8 interaction-boundary addendum — 2026-10-02
+
+V8 retained the visual system and corrected keyboard/state semantics that became visible after the native-dialog upgrade:
+
+- global section shortcuts now yield to focused controls, handled/modifier/IME events, and open modals, so Space activates a focused button instead of navigating and section keys cannot operate behind a dialog;
+- scenario selection now implements roving radio focus with arrow wraparound and Home/End;
+- telemetry running/paused state is truthful and announced, severity filters are bilingual and expose `aria-pressed`, and the drawer trigger exposes expanded/controlled state;
+- remaining visible theme, audio, and node-inspection chrome is localized; node triggers announce their dialog behavior;
+- muted success events no longer allocate follow-up audio timers.
+
+Measured final state: **213/213 unit tests in 16 files**, coverage **89.78% statements / 85.83% branches / 89.57% functions / 92.55% lines**, 9-route production build pass, 0 audit findings, and **202,528 B gzip** against the unchanged 205,000 B shell budget. Playwright now defines 60 checks: 2 request-only checks pass here and 58 browser checks remain blocked by the absent Chromium executable.

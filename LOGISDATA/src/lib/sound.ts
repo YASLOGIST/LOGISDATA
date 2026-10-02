@@ -115,6 +115,8 @@ class SoundSynthesizer {
   }
 
   public playSuccess(): void {
+    // Avoid allocating follow-up timers for muted telemetry events.
+    if (!this.enabled) return;
     this.playTone(523.25, 0.08, "sine", 0.04);
     setTimeout(() => this.playTone(659.25, 0.08, "sine", 0.04), 60);
     setTimeout(() => this.playTone(1046.5, 0.14, "sine", 0.05), 120);

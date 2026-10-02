@@ -45,26 +45,39 @@ describe("simulation domain model", () => {
 
   it("adjusts freight rows according to scenario", () => {
     const baselineRows = getScenarioFreightRows("baseline");
+    const activeRows = getScenarioFreightRows("active-audit");
     const mitigatedRows = getScenarioFreightRows("mitigated");
 
     expect(baselineRows.every((r) => r.verdict === "red-flag")).toBe(true);
+    expect(activeRows).toBe(getScenarioFreightRows("active-audit"));
     expect(mitigatedRows.every((r) => r.verdict === "passed")).toBe(true);
   });
 
-  it("smooths demand tiers in mitigated scenario", () => {
-    const tiers = getScenarioDemandTiers("mitigated");
-    expect(tiers[tiers.length - 1].distorted).toBeLessThan(145);
+  it("models demand tiers across all scenarios", () => {
+    const baseline = getScenarioDemandTiers("baseline");
+    const active = getScenarioDemandTiers("active-audit");
+    const mitigated = getScenarioDemandTiers("mitigated");
+    expect(baseline.at(-1)?.distorted).toBeGreaterThan(active.at(-1)?.distorted as number);
+    expect(mitigated.at(-1)?.distorted).toBeLessThan(active.at(-1)?.distorted as number);
   });
 
-  it("reduces route waste and increases savings in mitigated scenario", () => {
-    const regions = getScenarioRouteRegions("mitigated");
-    expect(regions[0].mileageWastePct).toBeLessThan(5);
-    expect(regions[0].optimizedSavings).toBeGreaterThan(428000);
+  it("models route outcomes across all scenarios", () => {
+    const baseline = getScenarioRouteRegions("baseline");
+    const active = getScenarioRouteRegions("active-audit");
+    const mitigated = getScenarioRouteRegions("mitigated");
+    expect(baseline[0].mileageWastePct).toBeGreaterThan(active[0].mileageWastePct);
+    expect(mitigated[0].mileageWastePct).toBeLessThan(active[0].mileageWastePct);
+    expect(mitigated[0].optimizedSavings).toBeGreaterThan(active[0].optimizedSavings);
   });
 
-  it("resolves all warehouse bins to audited status in mitigated scenario", () => {
-    const bins = getScenarioWarehouseBins("mitigated");
-    expect(bins.every((b) => b.status === "audited")).toBe(true);
+  it("models warehouse status across all scenarios", () => {
+    const baseline = getScenarioWarehouseBins("baseline");
+    const active = getScenarioWarehouseBins("active-audit");
+    const mitigated = getScenarioWarehouseBins("mitigated");
+    expect(baseline.filter((bin) => bin.status === "mismatch").length).toBeGreaterThan(
+      active.filter((bin) => bin.status === "mismatch").length,
+    );
+    expect(mitigated.every((bin) => bin.status === "audited")).toBe(true);
   });
 
   it("contains rich supply node details for all 8 nodes", () => {

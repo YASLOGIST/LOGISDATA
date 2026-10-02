@@ -60,6 +60,9 @@ function RoutesSectionImpl({ language, active, reduced, scenario = "active-audit
     }
   };
 
+  const sortDirection = (field: RouteSortField): "ascending" | "descending" | "none" =>
+    sortField === field ? (sortAsc ? "ascending" : "descending") : "none";
+
   return (
     <section
       id={SECTIONS[3].domId}
@@ -112,7 +115,7 @@ function RoutesSectionImpl({ language, active, reduced, scenario = "active-audit
                 <i className="route-line route-line-red" aria-hidden="true" />
                 {text(copy.detour, language)}
               </span>
-              <DatasetExport dataset="route-intelligence" language={language} />
+              <DatasetExport dataset="route-intelligence" language={language} scenario={scenario} />
             </div>
           </div>
 
@@ -123,25 +126,25 @@ function RoutesSectionImpl({ language, active, reduced, scenario = "active-audit
                 <tr>
                   <th scope="col" aria-label="#">#</th>
                   <th scope="col">{text(copy.headers.region, language)}</th>
-                  <th scope="col">
+                  <th scope="col" aria-sort={sortDirection("waste")}>
                     <button type="button" className="sort-th-btn" onClick={() => toggleSort("waste")}>
                       <span>{text(copy.headers.waste, language)}</span>
                       <ArrowUpDown size={12} aria-hidden="true" />
                     </button>
                   </th>
-                  <th scope="col">
+                  <th scope="col" aria-sort={sortDirection("fuel")}>
                     <button type="button" className="sort-th-btn" onClick={() => toggleSort("fuel")}>
                       <span>{text(copy.headers.fuel, language)}</span>
                       <ArrowUpDown size={12} aria-hidden="true" />
                     </button>
                   </th>
-                  <th scope="col">
+                  <th scope="col" aria-sort={sortDirection("gps")}>
                     <button type="button" className="sort-th-btn" onClick={() => toggleSort("gps")}>
                       <span>{text(copy.headers.gps, language)}</span>
                       <ArrowUpDown size={12} aria-hidden="true" />
                     </button>
                   </th>
-                  <th scope="col">
+                  <th scope="col" aria-sort={sortDirection("savings")}>
                     <button type="button" className="sort-th-btn" onClick={() => toggleSort("savings")}>
                       <span>{text(copy.headers.savings, language)}</span>
                       <ArrowUpDown size={12} aria-hidden="true" />

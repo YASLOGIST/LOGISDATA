@@ -72,11 +72,8 @@ const nextConfig: NextConfig = {
     return [
       { source: "/(.*)", headers: securityHeaders },
       {
-        // Immutable hashed build assets.
-        source: "/_next/static/:path*",
-        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
-      },
-      {
+        // Next.js owns the immutable cache policy for hashed `/_next/static`
+        // assets. Overriding it here is redundant and triggers a build warning.
         source: "/api/:path*",
         headers: [{ key: "Cache-Control", value: "no-store, max-age=0" }],
       },

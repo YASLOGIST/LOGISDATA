@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="LOGISDATA/public/og-image-animated.gif" alt="LOGISDATA — an audit gate sweeping across the live supply signal graph, leakage metrics and the five-stage audit rail" width="920">
+<img src="LOGISDATA/public/og-image-animated.gif" alt="LOGISDATA — an audit gate sweeping across a simulated supply signal graph, leakage metrics and the five-stage audit rail" width="920">
 
 <h1>LOGISDATA</h1>
 
@@ -41,8 +41,9 @@
 | **Initial JS on first paint** | zero Three.js | the engine is code-split and loaded only once the device is known to support WebGL |
 | **Runtime data fetches** | 0 on the critical path | the domain model is typed, static and tree-shaken |
 | **Database** | optional | the presentation is fully functional with no `DATABASE_URL` |
-| **Source surface** | 26 TypeScript modules (~2.2k lines) + 1.7k lines of tokenized CSS | small enough to audit in an afternoon |
-| **Automated coverage** | 161 unit tests + 59 end-to-end checks | every major user flow is exercised, not just pure functions |
+| **Source surface** | 53 TypeScript/TSX modules (7,016 lines) + 3,138 lines of tokenized CSS | measured from `src/` on 2026-10-02 |
+| **Automated coverage** | 213 passing unit tests + 60 configured Playwright checks | unit gates pass locally; browser checks run when Chromium is available |
+| **Initial shell payload** | 202,528 B gzip | measured against the 205,000 B production budget |
 | **Known vulnerabilities** | 0 (`npm audit`) | pinned toolchain plus an `esbuild` override |
 
 ---
@@ -105,13 +106,13 @@ flowchart LR
 
 ### Runtime boundaries
 
-The application is deliberately split into three cost tiers. Nothing from a heavier tier is downloaded, parsed or executed until the user has demonstrated intent.
+The application is deliberately split into three cost tiers. The 3D tier is requested only after the client capability probe confirms that WebGL is available; there is no cover-screen CTA or intent gate.
 
 | Tier | Boundary | Payload | Trigger |
 | :--- | :--- | :--- | :--- |
-| **T0 — Shell** | `page.tsx` → `PresentationShell` → `EngineLoader` | HTML, CSS, Framer Motion, two icons | first paint |
-| **T1 — Engine** | `dynamic(() => import("@/components/Presentation"), { ssr: false })` | React Three Fiber, drei, Three.js, all five scenes | hydration, once `probeDevice()` confirms a WebGL context |
-| **T2 — Data plane** | `getDb()` inside `api/health` | `pg` pool, Drizzle | an HTTP request *and* a configured `DATABASE_URL` |
+| **T0 — Shell** | `page.tsx` → `PresentationShell` → `EngineLoader` | Static HTML, CSS, React shell, small icon subset | first paint |
+| **T1 — Engine** | `dynamic(() => import("@/components/Presentation"), { ssr: false })` | React Three Fiber, drei, Three.js, Framer Motion, all five scenes | hydration, once the device probe confirms a WebGL context |
+| **T2 — Data plane** | `getDb()` inside `api/health` | `pg` pool, Drizzle | a readiness request *and* a configured `DATABASE_URL` |
 
 > [!IMPORTANT]
 > `ssr: false` is a correctness requirement, not an optimization. The scene graph reads `window`, `document.visibilityState` and `localStorage` during initialization; server-rendering it would produce a hydration mismatch and a flash of unthemed content.
@@ -124,22 +125,23 @@ Five operational models share **one** `<Canvas>`, **one** camera and **one** scr
 ScrollControls(pages = 5, damping = 0.12)
    │
    ├─ ScrollBridge ───────────► exposes scroll.el to React for programmatic nav
+   ├─ DeckOverlay portal ─────► 5 semantic <section> elements in the native scroller
    │
-   ├─ IndustrialScene ────────► per-frame rig (useFrame)
-   │     ├─ camera.position  lerp(CAMERA_TARGETS[i], [i+1]) → damp(1 - e^(-4.6·Δt))
-   │     ├─ camera.lookAt    lerp(LOOK_TARGETS[i],   [i+1]) → damp(1 - e^(-5.2·Δt))
-   │     └─ group[i]         scale 0.56 + focus·0.44 · depth (i − page)·2.2
-   │
-   └─ Scroll(html) ──────────► 5 semantic <section> elements, selectable + crawlable
+   └─ IndustrialScene ────────► per-frame rig (useFrame)
+         ├─ pagePosition     offset × (SECTION_COUNT − 1)
+         ├─ camera.position  lerp(CAMERA_TARGETS[i], [i+1]) → damp(1 - e^(-4.6·Δt))
+         ├─ camera.lookAt    lerp(LOOK_TARGETS[i],   [i+1]) → damp(1 - e^(-5.2·Δt))
+         └─ group[i]         scale 0.56 + focus·0.44 · depth (i − pagePosition)·2.2
 ```
 
 **The focus curve is the single source of truth for "how present is section _i_ right now".**
 
 ```ts
-focus(page, i) = clamp(1 − |page − (i + 0.5)| / 1.08, 0, 1)
+pagePosition = clamp(offset, 0, 1) × (SECTION_COUNT − 1)
+focus(offset, i) = clamp(1 − |pagePosition − i| / 1.08, 0, 1)
 ```
 
-`IndustrialScene` applies it to mesh scale; `FocusFadeLabel` applies the identical curve to label opacity through [`lib/sceneFocus.ts`](LOGISDATA/src/lib/sceneFocus.ts). Because both consumers derive from one function, 3D geometry and its HTML annotations can never desynchronize — which is exactly the defect that produced overlapping labels from adjacent sections before the curve was extracted.
+`IndustrialScene` applies it to mesh scale; `FocusFadeLabel` applies the identical curve to label opacity through [`lib/sceneFocus.ts`](LOGISDATA/src/lib/sceneFocus.ts). Both consumers therefore stay aligned by construction—the regression tests lock the exact section peaks at offsets 0, 0.25, 0.5, 0.75, and 1.
 
 ### Module map
 
@@ -154,6 +156,8 @@ focus(page, i) = clamp(1 − |page − (i + 0.5)| / 1.08, 0, 1)
 | [`src/components/sections/*`](LOGISDATA/src/components/sections) | Accessible HTML analytics for each theatre | Semantic tables; never canvas-only content |
 | [`src/lib/data.ts`](LOGISDATA/src/lib/data.ts) | The audit model: 3 metrics, 5 freight rows, 5 demand tiers, 5 route regions, 4 warehouse specs, 42 bins, 8 nodes, 10 edges | Every string is `{ en, ar }` |
 | [`src/lib/i18n.ts`](LOGISDATA/src/lib/i18n.ts) | `text` / `number` / `integer` / `currency` via `Intl` | `en-US` and `ar-EG` numeral systems |
+| [`src/lib/export.ts`](LOGISDATA/src/lib/export.ts) | Scenario-aware CSV and executive JSON evidence packages | Exported rows and summaries match the active scenario; JSON carries illustrative provenance |
+| [`src/lib/useNativeDialog.ts`](LOGISDATA/src/lib/useNativeDialog.ts) | Shared native modal lifecycle | Initial focus, Escape/platform close, and invoker-focus restoration |
 | [`src/lib/types.ts`](LOGISDATA/src/lib/types.ts) | Domain types | `LocalizedText` makes an untranslated string a compile error |
 | [`src/db/index.ts`](LOGISDATA/src/db/index.ts) | Lazy, bounded PostgreSQL pool | Never constructed at import time |
 | [`src/app/api/health/route.ts`](LOGISDATA/src/app/api/health/route.ts) | Liveness + optional readiness | Honest status codes — see [Operations](#-operations) |
@@ -173,7 +177,7 @@ focus(page, i) = clamp(1 − |page − (i + 0.5)| / 1.08, 0, 1)
 <tr><td>01</td><td>Five-stage audit narrative</td><td><code>sections/*</code></td><td>Full-viewport sections bound to a shared section index</td><td>✅ Shipped</td></tr>
 <tr><td>02</td><td>Synchronized 3D models</td><td><code>three/*</code></td><td>Supply network, laser audit gate, demand matrix, route terrain, warehouse grid</td><td>✅ Shipped</td></tr>
 <tr><td>03</td><td>Cinematic camera choreography</td><td><code>IndustrialScene</code></td><td>Dual-target interpolation with frame-rate-independent damping</td><td>✅ Shipped</td></tr>
-<tr><td>04</td><td>Deferred engine boot</td><td><code>PresentationShell</code></td><td><code>next/dynamic</code> + <code>ssr:false</code> behind an explicit CTA</td><td>✅ Shipped</td></tr>
+<tr><td>04</td><td>Deferred engine boot</td><td><code>PresentationShell</code></td><td><code>next/dynamic</code> + <code>ssr:false</code> after the WebGL capability probe; no cover-screen CTA</td><td>✅ Shipped</td></tr>
 <tr><td>05</td><td>Animated metric counters</td><td><code>MetricCounter</code></td><td><code>IntersectionObserver</code> (0.35) → rAF cubic ease-out over 1250 ms</td><td>✅ Shipped</td></tr>
 
 <tr><td colspan="5"><b>Localization</b></td></tr>
@@ -190,7 +194,7 @@ focus(page, i) = clamp(1 − |page − (i + 0.5)| / 1.08, 0, 1)
 
 <tr><td colspan="5"><b>Performance</b></td></tr>
 <tr><td>14</td><td>Background-tab suspension</td><td><code>Presentation</code></td><td><code>visibilitychange</code> → <code>frameloop="never"</code>: no GPU work when hidden</td><td>✅ Shipped</td></tr>
-<tr><td>15</td><td>Deterministic fill cost</td><td><code>Canvas</code></td><td><code>dpr={1}</code>, <code>alpha:false</code>, <code>powerPreference:"high-performance"</code></td><td>✅ Shipped</td></tr>
+<tr><td>15</td><td>Tiered fill cost</td><td><code>Canvas</code></td><td>Device-derived DPR clamp, adaptive regression while scrolling, <code>alpha:false</code>, <code>powerPreference:"high-performance"</code></td><td>✅ Shipped</td></tr>
 <tr><td>16</td><td>Allocation-free render loop</td><td><code>IndustrialScene</code></td><td>Module-level vectors + refs; no per-frame object churn</td><td>✅ Shipped</td></tr>
 <tr><td>17</td><td>React-free label updates</td><td><code>FocusFadeLabel</code></td><td>Opacity written straight to the DOM node inside <code>useFrame</code></td><td>✅ Shipped</td></tr>
 
@@ -199,8 +203,14 @@ focus(page, i) = clamp(1 − |page − (i + 0.5)| / 1.08, 0, 1)
 <tr><td>19</td><td>Database-optional runtime</td><td><code>db/index.ts</code></td><td>Pool constructed lazily; importing the module never throws</td><td>✅ Shipped</td></tr>
 <tr><td>20</td><td>Bounded connection pool</td><td><code>db/index.ts</code></td><td><code>max</code> clamped to 1–50, 5 s connect timeout, 30 s idle reap</td><td>✅ Shipped</td></tr>
 <tr><td>21</td><td>Honest health contract</td><td><code>api/health</code></td><td><code>200</code> live · <code>503</code> only when a <i>configured</i> database is unreachable</td><td>✅ Shipped</td></tr>
-<tr><td>22</td><td>Production security headers</td><td><code>next.config.ts</code></td><td>7 headers incl. HSTS preload in production builds</td><td>✅ Shipped</td></tr>
+<tr><td>22</td><td>Production security headers</td><td><code>next.config.ts</code></td><td>CSP plus eight defense headers, including HSTS preload in production builds</td><td>✅ Shipped</td></tr>
 <tr><td>23</td><td>Animated social card</td><td><code>tools/og-image</code></td><td>Reproducible 1200×630 GIF + PNG fallback from design tokens</td><td>✅ Shipped</td></tr>
+<tr><td>24</td><td>Scenario-consistent evidence</td><td><code>lib/export.ts</code></td><td>CSV rows and executive JSON summaries derive from the selected scenario; JSON includes illustrative provenance</td><td>✅ Shipped</td></tr>
+<tr><td>25</td><td>Honest simulation state</td><td><code>LiveTelemetryFeed</code></td><td>Bilingual fixture-simulation disclosure; no interval or audio work while closed</td><td>✅ Shipped</td></tr>
+<tr><td>26</td><td>Native modal lifecycle</td><td><code>useNativeDialog</code></td><td>Platform modality and Escape handling, deterministic initial focus, invoker-focus restoration</td><td>✅ Shipped</td></tr>
+<tr><td>27</td><td>Calculator provenance</td><td><code>RecoveryCalculator</code> / <code>HandoutView</code></td><td>Bilingual fixed-assumption disclosure; illustrative, not a forecast</td><td>✅ Shipped</td></tr>
+<tr><td>28</td><td>Context-safe global shortcuts</td><td><code>lib/keyboard.ts</code></td><td>Section keys yield to focused controls, IME composition, handled events, modifiers, and open modals</td><td>✅ Shipped</td></tr>
+<tr><td>29</td><td>Accessible operating modes</td><td><code>ScenarioSwitcher</code> / <code>LiveTelemetryFeed</code></td><td>Roving radio focus, arrow/Home/End selection, localized pressed filters, and truthful running/paused status</td><td>✅ Shipped</td></tr>
 
 </tbody>
 </table>
@@ -211,7 +221,7 @@ focus(page, i) = clamp(1 − |page − (i + 0.5)| / 1.08, 0, 1)
 
 ### W-01 · Cold start and engine handoff
 
-First paint must be instant and must never depend on WebGL. The engine chunk is requested only after `probeDevice()` has confirmed the browser can actually create a rendering context, so a device that cannot run the deck never pays for the 1 MB Three.js chunk — it is served the `/handout` text briefing instead.
+First paint must not depend on WebGL. The engine chunk is requested only after the preference/device probe confirms that the browser can create a rendering context, so a device that cannot run the deck does not request the Three.js chunk—it is served the `/handout` text briefing instead.
 
 ```mermaid
 sequenceDiagram
@@ -230,7 +240,7 @@ sequenceDiagram
   D->>P: module resolved
   P->>G: create single Canvas context
   G-->>P: context ready
-  P-->>V: audit loop live at section 01
+  P-->>V: control room ready at section 01
   Note over S,P: Any throw inside P is caught by ExperienceBoundary →<br/>"Retry engine" panel instead of a blank document
 ```
 
@@ -243,22 +253,22 @@ flowchart LR
   classDef n fill:#0b1c2a,stroke:#4de1c1,color:#edf7fb
   classDef o fill:#10283a,stroke:#7dd3fc,color:#edf7fb
 
-  s["scroll.offset<br/>0 → 1"]:::n --> p["page = offset × 5"]:::n
-  p --> i["section = floor(page)<br/>local = page − section"]:::n
+  s["scroll.offset<br/>0 → 1"]:::n --> p["page = offset × (5 − 1)"]:::n
+  p --> i["current = floor(page)<br/>local = page − current"]:::n
   i --> t["transition = smoothstep(local)"]:::n
   t --> cam["camera position + lookAt<br/>lerp → exponential damp"]:::o
-  p --> f["focus = clamp(1 − abs(page − i − 0.5) ÷ 1.08)"]:::n
+  p --> f["focus = clamp(1 − abs(page − index) ÷ 1.08)"]:::n
   f --> sc["group scale 0.56 → 1.00"]:::o
   f --> lb["label opacity + visibility"]:::o
-  i --> ev["onSectionChange(i)<br/>fires only on change"]:::o
-  ev --> ui["nav highlight · progress dots · section entry animations"]:::o
+  s --> native["native scroll geometry<br/>sectionFromScrollTop"]:::n
+  native --> ui["hash · nav highlight · progress · live region"]:::o
 ```
 
 **Guarantees**
 
-- `onSectionChange` is edge-triggered (`lastSection` ref), so React state updates at most once per section crossing instead of once per frame.
-- Damping uses `1 − e^(−k·Δt)`, which is identical at 30, 60 and 144 Hz — no fast-machine/slow-machine divergence.
-- `goToSection()` scrolls the real DOM container obtained through `ScrollBridge`, so keyboard, nav-chip and progress-dot navigation all share one code path.
+- URL, navigation, progress, and live-region state derive from the native scroll event—not the GPU frame loop—so they remain correct when rendering is throttled or suspended.
+- Damping uses `1 − e^(−k·Δt)`, which is frame-rate independent across 30, 60, and 144 Hz.
+- `goToSection()` scrolls the real DOM container obtained through `ScrollBridge`, so keyboard, nav-chip, and progress-dot navigation all share one code path.
 
 ### W-03 · Bilingual inversion
 
@@ -401,10 +411,11 @@ curl -s localhost:3000/api/health | jq
 | `npm run lint` | ESLint flat config, Core Web Vitals | ✅ |
 | `npm run build` | Production compile + route collection | ✅ |
 | `npm audit` | Dependency advisories (currently **0**) | ✅ |
-| `npm run test` | 161 Vitest unit tests (85% statements, 90% lines) | ✅ |
-| `npm run test:e2e` | 59 Playwright checks across desktop, reduced-motion and mobile — including axe accessibility and an enforced performance budget | ✅ |
-| `npm run budget` | Gzipped landing payload against a 205,000 B ceiling | ✅ |
-| `npm run check` | Types, lint and build in sequence — the pre-merge contract | ✅ |
+| `npm run test` | 213 Vitest tests in 16 files | ✅ |
+| `npm run test:coverage` | 80% statements/branches/functions and 85% lines; current measured result 89.78% / 85.83% / 89.57% / 92.55% | ✅ |
+| `npm run test:e2e` | 60 configured Playwright checks across desktop, reduced-motion and mobile—including axe accessibility and performance budgets; requires Chromium | ✅ when browser is available |
+| `npm run budget` | Gzipped landing payload against a 205,000 B ceiling; current measured result 202,528 B | ✅ |
+| `npm run check` | Types, lint, unit tests, and production build in sequence | ✅ |
 
 ---
 
@@ -421,10 +432,14 @@ HEAD /api/health           # liveness  — 204, no body, no pool access
 {
   "ok": true,
   "service": "logisdata-control-room",
+  "version": "3.1.0",
   "database": "ready | unavailable | not-configured",
-  "timestamp": "2026-10-01T09:00:00.000Z"
+  "uptimeSeconds": 42,
+  "timestamp": "2026-10-02T19:42:00.000Z"
 }
 ```
+
+`version` defaults to `package.json` and can be replaced by a non-empty `NEXT_PUBLIC_APP_VERSION` deployment identifier.
 
 | Situation | `database` | HTTP | Interpretation |
 | :--- | :--- | :---: | :--- |
@@ -434,16 +449,18 @@ HEAD /api/health           # liveness  — 204, no body, no pool access
 
 ### Security posture
 
-Applied to every route by [`next.config.ts`](LOGISDATA/next.config.ts).
+Applied to every route by [`next.config.ts`](LOGISDATA/next.config.ts). Production responses carry nine security headers; API responses additionally carry `Cache-Control: no-store, max-age=0`.
 
 | Header | Value | Threat addressed |
 | :--- | :--- | :--- |
+| `Content-Security-Policy` | self-origin defaults; objects/frames disabled; documented inline-script exception | Injection and embedding surface |
 | `X-Content-Type-Options` | `nosniff` | MIME confusion |
 | `X-Frame-Options` | `DENY` | Clickjacking |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` | Referrer leakage |
 | `Permissions-Policy` | camera, microphone, geolocation, payment, usb = `()` | Silent capability acquisition |
 | `Cross-Origin-Opener-Policy` | `same-origin` | Cross-origin window tampering |
 | `Cross-Origin-Resource-Policy` | `same-origin` | Speculative cross-origin reads |
+| `X-DNS-Prefetch-Control` | `on` | Explicit DNS-prefetch policy |
 | `Strict-Transport-Security` | `max-age=63072000; includeSubDomains; preload` *(production only)* | Protocol downgrade |
 
 `poweredByHeader` is disabled, `compress` is enabled and `reactStrictMode` is on.
@@ -477,7 +494,7 @@ The Open Graph card is not a screenshot — it is **compiled**, from the same to
 | Motion | Mirrors | Product meaning |
 | :--- | :--- | :--- |
 | Emerald gate sweeping left → right | `AuditScanner` laser gate | The audit pass itself |
-| Metric digits scrambling, then a tick | `MetricCounter` | Live re-verification of a figure |
+| Metric digits scrambling, then a tick | `MetricCounter` | Simulated re-verification of an illustrative figure |
 | Packets travelling the node graph | `SupplyNetwork` (the real 8 nodes / 10 edges) | Signal flow between facilities |
 | Red and amber rings pulsing | `status: "leak" \| "phantom"` | Unverified nodes demanding attention |
 | Five-segment rail illuminating 01 → 05 | The five sections | The narrative spine of the deck |

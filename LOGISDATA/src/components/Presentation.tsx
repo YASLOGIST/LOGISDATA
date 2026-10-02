@@ -21,6 +21,7 @@ import type { WebGLRenderer } from "three";
 import { presentationCopy } from "@/lib/data";
 import { downloadExecutiveReportJson } from "@/lib/export";
 import { t, text } from "@/lib/i18n";
+import { shouldIgnorePresentationShortcut } from "@/lib/keyboard";
 import { DURATION, transition } from "@/lib/motion";
 import { sound } from "@/lib/sound";
 import {
@@ -49,7 +50,6 @@ import { ScenarioSwitcher } from "@/components/ui/ScenarioSwitcher";
 
 const NEXT_KEYS = new Set(["ArrowDown", "ArrowRight", "PageDown", " ", "Spacebar"]);
 const PREV_KEYS = new Set(["ArrowUp", "ArrowLeft", "PageUp"]);
-const EDITABLE = "input, textarea, select, [contenteditable='true']";
 
 interface ScrollBridgeProps {
   onReady: (element: HTMLDivElement, fill: HTMLDivElement, fixed: HTMLDivElement) => void;
@@ -268,9 +268,11 @@ export function Presentation() {
       setPageVisible(document.visibilityState === "visible");
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      const active = document.activeElement;
-      if (active && active.matches(EDITABLE)) return;
-      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      if (shouldIgnorePresentationShortcut(
+        event,
+        document.activeElement,
+        Boolean(document.querySelector("dialog[open]")),
+      )) return;
 
       if (event.key === "?" || (event.key === "/" && event.shiftKey)) {
         event.preventDefault();
@@ -413,6 +415,8 @@ export function Presentation() {
             className={`control-button ${telemetryOpen ? "btn-active-glow" : ""}`}
             onClick={() => setTelemetryOpen((v) => !v)}
             aria-label={t("telemetryToggle", language)}
+            aria-controls="telemetry-panel"
+            aria-expanded={telemetryOpen}
           >
             <Activity size={15} aria-hidden="true" />
             <span>{t("telemetryToggle", language)}</span>
@@ -424,6 +428,7 @@ export function Presentation() {
             className="control-button"
             onClick={() => setCalculatorOpen(true)}
             aria-label={t("calculatorOpen", language)}
+            aria-haspopup="dialog"
           >
             <Calculator size={15} aria-hidden="true" />
             <span>{t("calculatorOpen", language)}</span>
@@ -433,7 +438,7 @@ export function Presentation() {
           <button
             type="button"
             className="control-button"
-            onClick={() => downloadExecutiveReportJson(language)}
+            onClick={() => downloadExecutiveReportJson(language, scenario)}
             aria-label={t("exportJson", language)}
             title={t("exportJson", language)}
           >
@@ -456,6 +461,7 @@ export function Presentation() {
             type="button"
             onClick={() => setHelpOpen(true)}
             aria-label={t("shortcuts", language)}
+            aria-haspopup="dialog"
           >
             <Keyboard size={15} aria-hidden="true" />
             <span aria-hidden="true">?</span>
@@ -481,7 +487,7 @@ export function Presentation() {
             aria-pressed={theme === "light"}
           >
             {theme === "dark" ? <Sun size={15} aria-hidden="true" /> : <Moon size={15} aria-hidden="true" />}
-            <span>{theme === "dark" ? "LIGHT" : "DARK"}</span>
+            <span>{t(theme === "dark" ? "themeLight" : "themeDark", language)}</span>
           </button>
         </div>
       </header>

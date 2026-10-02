@@ -134,6 +134,8 @@ export const ui = {
   qualityHigh: { en: "High", ar: "عالية" },
   qualityMedium: { en: "Balanced", ar: "متوازنة" },
   qualityLow: { en: "Calm", ar: "هادئة" },
+  themeLight: { en: "LIGHT", ar: "فاتح" },
+  themeDark: { en: "DARK", ar: "داكن" },
 
   // Scenario engine strings
   scenarioLabel: { en: "Audit Mode", ar: "نمط التدقيق" },
@@ -141,16 +143,29 @@ export const ui = {
   scenarioActive: { en: "02 Active Audit Gate", ar: "٠٢ بوابة تدقيق نشطة" },
   scenarioMitigated: { en: "03 Closed-Loop Optim", ar: "٠٣ حلقة تحسين كاملة" },
 
-  // Live Telemetry
-  telemetryTitle: { en: "Live Audit Telemetry Stream", ar: "تدفق تليماتكس التدقيق اللحظي" },
-  telemetryToggle: { en: "Live Telemetry", ar: "التليماتكس المباشر" },
+  // Telemetry simulation
+  telemetryTitle: { en: "Audit Telemetry Simulation", ar: "محاكاة تليماتكس التدقيق" },
+  telemetryToggle: { en: "Telemetry Simulation", ar: "محاكاة التليماتكس" },
   telemetryPause: { en: "Pause", ar: "إيقاف مؤقت" },
   telemetryResume: { en: "Resume", ar: "استئناف" },
-  livePulse: { en: "STREAM ACTIVE", ar: "البث نشط" },
+  livePulse: { en: "SIMULATION RUNNING", ar: "المحاكاة قيد التشغيل" },
+  simulationPaused: { en: "SIMULATION PAUSED", ar: "المحاكاة متوقفة مؤقتًا" },
+  severityCritical: { en: "Critical", ar: "حرج" },
+  severityWarning: { en: "Warning", ar: "تحذير" },
+  severityReconciled: { en: "Reconciled", ar: "تمت المطابقة" },
+  severityOptimized: { en: "Optimized", ar: "محسّن" },
+  telemetryDisclosure: {
+    en: "Illustrative replay generated from local fixtures — not connected to operational systems.",
+    ar: "إعادة تشغيل توضيحية مولّدة من بيانات محلية افتراضية — غير متصلة بالأنظمة التشغيلية.",
+  },
 
   // Recovery Calculator
   calculatorTitle: { en: "Executive Margin Recovery Calculator", ar: "حاسبة استرداد الهامش التنفيذية" },
   calculatorOpen: { en: "ROI Calculator", ar: "حاسبة العائد" },
+  calculatorDisclosure: {
+    en: "Illustrative estimate, not a forecast. Fixed assumptions: 3.8% billing recovery, 4.2% route recovery, scaled inventory effects, and a $280k system cost. Validate with audited inputs before investment decisions.",
+    ar: "تقدير توضيحي وليس توقعًا. الافتراضات الثابتة: استرداد ٣٫٨٪ من الفوترة و٤٫٢٪ من المسارات، وتأثيرات مخزون متدرجة، وتكلفة نظام قدرها ٢٨٠ ألف دولار. تحقّق من المدخلات المدققة قبل قرارات الاستثمار.",
+  },
   annualFreightSpend: { en: "Annual Freight Spend", ar: "الإنفاق السنوي على الشحن" },
   annualOrderUnits: { en: "Annual Order Volume", ar: "حجم الطلبات السنوي" },
   skuCatalogSize: { en: "Catalog SKU Count", ar: "عدد أصناف الكتالوج" },
@@ -167,10 +182,15 @@ export const ui = {
   // Sound FX
   soundOn: { en: "AUDIO: ON", ar: "الصوت: مفعّل" },
   soundOff: { en: "AUDIO: MUTED", ar: "الصوت: صامت" },
+  soundShortOn: { en: "SFX", ar: "صوت" },
+  soundShortOff: { en: "MUTE", ar: "صامت" },
 
   // Node Inspector & Table Filters
   nodeInspection: { en: "Node Telemetry", ar: "تليماتكس العقدة" },
+  nodeSelector: { en: "Supply chain node selector", ar: "محدد عقد سلسلة الإمداد" },
+  inspectNode: { en: "Inspect", ar: "فحص" },
   allRecords: { en: "All", ar: "الكل" },
+  noRecords: { en: "No records match the current filters.", ar: "لا توجد سجلات تطابق عوامل التصفية الحالية." },
   search: { en: "Search...", ar: "بحث..." },
   filter: { en: "Filter", ar: "تصفية" },
   status: { en: "Status", ar: "الحالة" },
