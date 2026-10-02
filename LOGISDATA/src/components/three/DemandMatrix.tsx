@@ -37,22 +37,47 @@ function DemandBar({ tier, index, series, theme }: DemandBarProps) {
     if (!groupRef.current) return;
     const step = Math.min(delta, 1 / 20);
     const easedProgress = easeApproach(getSectionApproach(scroll.offset, SECTION_INDEX));
-    const targetValue = series === "distorted" ? THREE.MathUtils.lerp(tier.distorted, tier.audited, easedProgress) : initialValue;
+    const targetValue =
+      series === "distorted"
+        ? THREE.MathUtils.lerp(tier.distorted, tier.audited, easedProgress)
+        : initialValue;
     const targetHeight = targetValue / 40;
     groupRef.current.scale.y = THREE.MathUtils.damp(groupRef.current.scale.y, targetHeight, 7, step);
-    groupRef.current.position.y = THREE.MathUtils.damp(groupRef.current.position.y, baseFloor + targetHeight / 2, 7, step);
-    groupRef.current.rotation.y = THREE.MathUtils.damp(groupRef.current.rotation.y, Math.sin(scroll.offset * 4 + index) * 0.04, 3, step);
+    groupRef.current.position.y = THREE.MathUtils.damp(
+      groupRef.current.position.y,
+      baseFloor + targetHeight / 2,
+      7,
+      step,
+    );
+    groupRef.current.rotation.y = THREE.MathUtils.damp(
+      groupRef.current.rotation.y,
+      Math.sin(scroll.offset * 4 + index) * 0.04,
+      3,
+      step,
+    );
   });
 
   return (
-    <group ref={groupRef} position={[0, baseFloor + initialValue / 80, 0]} scale={[1, initialValue / 40, 1]}>
+    <group
+      ref={groupRef}
+      position={[0, baseFloor + initialValue / 80, 0]}
+      scale={[1, initialValue / 40, 1]}
+    >
       <mesh>
         <boxGeometry args={[0.46, 1, 0.46]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={series === "distorted" ? 1.1 : 0.6} transparent opacity={theme === "dark" ? 0.86 : 0.9} metalness={0.3} roughness={0.38} />
+        <meshStandardMaterial
+          color={color}
+          emissive={color}
+          emissiveIntensity={series === "distorted" ? 1.1 : 0.6}
+          transparent
+          opacity={theme === "dark" ? 0.86 : 0.9}
+          metalness={0.3}
+          roughness={0.38}
+        />
       </mesh>
       <mesh position={[0, 0.51, 0]}>
         <boxGeometry args={[0.5, 0.035, 0.5]} />
-        <meshBasicMaterial color={color} transparent opacity={0.82} />
+        <meshBasicMaterial color={color} transparent opacity={0.88} />
       </mesh>
     </group>
   );
@@ -61,17 +86,27 @@ function DemandBar({ tier, index, series, theme }: DemandBarProps) {
 export function DemandMatrix({ language, theme }: DemandMatrixProps) {
   return (
     <group rotation={[0, -0.12, 0]} position={[0, -0.05, 0]}>
+      {/* Plinth Foundation */}
       <mesh position={[0, -1.72, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[8.2, 4.7, 1, 1]} />
-        <meshStandardMaterial color={theme === "dark" ? "#10283a" : "#d8e8ed"} transparent opacity={0.9} roughness={0.7} />
+        <planeGeometry args={[8.4, 4.8, 1, 1]} />
+        <meshStandardMaterial
+          color={theme === "dark" ? "#10283a" : "#d8e8ed"}
+          transparent
+          opacity={0.92}
+          roughness={0.65}
+        />
       </mesh>
       {demandTiers.map((tier, index) => {
         const x = (index - (demandTiers.length - 1) / 2) * 1.5;
         return (
           <group key={tier.id} position={[x, 0, 0]}>
             <DemandBar tier={tier} index={index} series="actual" theme={theme} />
-            <group position={[0.52, 0, 0]}><DemandBar tier={tier} index={index} series="distorted" theme={theme} /></group>
-            <group position={[1.04, 0, 0]}><DemandBar tier={tier} index={index} series="audited" theme={theme} /></group>
+            <group position={[0.52, 0, 0]}>
+              <DemandBar tier={tier} index={index} series="distorted" theme={theme} />
+            </group>
+            <group position={[1.04, 0, 0]}>
+              <DemandBar tier={tier} index={index} series="audited" theme={theme} />
+            </group>
             <FocusFadeText
               position={[0.52, -2.05, 0]}
               sectionIndex={SECTION_INDEX}
@@ -94,7 +129,8 @@ export function DemandMatrix({ language, theme }: DemandMatrixProps) {
         outlineColor="#06121d"
         textAlign="center"
       >
-        {text(presentationCopy.demand.smoothingLabel, language)}{"\n"}
+        {text(presentationCopy.demand.smoothingLabel, language)}
+        {"\n"}
         {text(presentationCopy.demand.chartAudited, language)}
       </FocusFadeText>
     </group>

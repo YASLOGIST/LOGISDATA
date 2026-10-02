@@ -1,10 +1,18 @@
-import { demandTiers, freightAuditRows, routeRegions, warehouseSpecs } from "./data";
+import {
+  auditMetrics,
+  demandTiers,
+  freightAuditRows,
+  presentationCopy,
+  routeRegions,
+  warehouseSpecs,
+} from "./data";
+import { auditSummary, demandSummary, routeSummary, warehouseSummary } from "./metrics";
 import type { Language } from "./types";
 
 /**
  * Dataset export. An executive audit deck whose numbers cannot leave the
  * screen forces the audience to re-key figures by hand; every table in the
- * presentation is now exportable as RFC 4180 CSV.
+ * presentation is now exportable as RFC 4180 CSV, JSON, or Executive Markdown.
  */
 
 export type DatasetId = "freight-audit" | "demand-signal" | "route-intelligence" | "warehouse-control";
@@ -108,7 +116,68 @@ export function downloadDataset(dataset: DatasetId, language: Language): boolean
   document.body.append(anchor);
   anchor.click();
   anchor.remove();
-  // Revoke on the next task so Safari has committed the navigation.
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+  return true;
+}
+
+/**
+ * Exports complete executive audit package as JSON
+ */
+export function downloadExecutiveReportJson(language: Language): boolean {
+  if (typeof document === "undefined" || typeof URL.createObjectURL !== "function") return false;
+  const data = {
+    metadata: {
+      project: "LOGISDATA Control Room",
+      organization: "AAST Executive Data Lab",
+      presenter: presentationCopy.hero.presenter,
+      registration: presentationCopy.hero.registration,
+      exportedAt: new Date().toISOString(),
+      language,
+    },
+    executiveSummary: {
+      metrics: auditMetrics.map((m) => ({
+        id: m.id,
+        label: m.label[language],
+        formattedValue: `${m.prefix}${m.value}${m.suffix}`,
+        note: m.note[language],
+      })),
+      auditSummary,
+      demandSummary,
+      routeSummary,
+      warehouseSummary,
+    },
+    theatres: {
+      freightAudit: freightAuditRows.map((r) => ({
+        ...r,
+        freightType: r.freightType[language],
+      })),
+      demandTiers: demandTiers.map((t) => ({
+        ...t,
+        label: t.label[language],
+      })),
+      routeRegions: routeRegions.map((r) => ({
+        ...r,
+        region: r.region[language],
+      })),
+      warehouseSpecs: warehouseSpecs.map((s) => ({
+        ...s,
+        title: s.title[language],
+        impact: s.impact[language],
+        cause: s.cause[language],
+        fix: s.fix[language],
+      })),
+    },
+  };
+
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `logisdata-executive-audit-${language}-${new Date().toISOString().slice(0, 10)}.json`;
+  anchor.rel = "noopener";
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
   setTimeout(() => URL.revokeObjectURL(url), 0);
   return true;
 }
