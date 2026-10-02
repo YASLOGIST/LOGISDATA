@@ -110,6 +110,39 @@ button:focus-visible {
   height: 100% !important;
 }
 
+.canvas-recovery {
+  position: fixed;
+  inset: 0;
+  z-index: 24;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--bg-deep) 78%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+.canvas-recovery-card {
+  width: min(100%, 390px);
+  padding: 26px 28px 28px;
+  border: 1px solid var(--line-strong);
+  background: color-mix(in srgb, var(--surface-strong) 94%, transparent);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+}
+
+.canvas-recovery-card strong {
+  display: block;
+  margin-top: 12px;
+  font-size: clamp(1.3rem, 3vw, 1.8rem);
+  letter-spacing: -0.03em;
+}
+
+.canvas-recovery-card p {
+  margin: 10px 0 4px;
+  color: var(--text-soft);
+  font-size: 0.76rem;
+  line-height: 1.65;
+}
+
 /*
  * The readable deck is portaled into this in-flow host inside drei's real
  * scroll element. Native scrolling then moves the HTML and 3D layers from
