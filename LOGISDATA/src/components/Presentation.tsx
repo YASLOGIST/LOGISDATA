@@ -180,6 +180,10 @@ export function Presentation() {
       };
 
       const sync = () => {
+        // Content can expand without resizing the scroll viewport, so refresh
+        // scrollHeight on every native scroll rather than trusting an earlier
+        // ResizeObserver snapshot.
+        measure();
         const metrics = scrollMetricsRef.current;
         setActiveSection(
           sectionFromScrollTop(element.scrollTop, metrics.scrollHeight, metrics.clientHeight),
@@ -189,7 +193,6 @@ export function Presentation() {
       const observer =
         typeof ResizeObserver === "function"
           ? new ResizeObserver(() => {
-              measure();
               sync();
             })
           : null;
@@ -246,7 +249,11 @@ export function Presentation() {
       pendingSection.current = index;
       return;
     }
-    const metrics = scrollMetricsRef.current;
+    const metrics = {
+      scrollHeight: element.scrollHeight,
+      clientHeight: element.clientHeight,
+    };
+    scrollMetricsRef.current = metrics;
     const targetTop = scrollTopForSection(index, metrics.scrollHeight, metrics.clientHeight);
     element.scrollTo({ top: targetTop, behavior: "smooth" });
     const targetHash = hashFromSectionIndex(index);
@@ -293,9 +300,14 @@ export function Presentation() {
 
       let destination: number | null = null;
       const element = scrollElement.current;
-      const from = element
+      // The hash records the latest requested destination synchronously,
+      // while smooth scrolling may still be moving through intermediate
+      // offsets. Prefer that intent so rapid repeated arrows advance once per
+      // press instead of requesting the same section again.
+      const requestedSection = sectionIndexFromHash(window.location.hash);
+      const from = requestedSection ?? (element
         ? sectionFromScrollTop(element.scrollTop, element.scrollHeight, element.clientHeight)
-        : (pendingSection.current ?? activeSection);
+        : (pendingSection.current ?? activeSection));
 
       if (NEXT_KEYS.has(event.key)) destination = from + 1;
       else if (PREV_KEYS.has(event.key)) destination = from - 1;

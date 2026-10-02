@@ -327,7 +327,7 @@ Invariant Gate: project identity, routes, figures, formulas, scenario transforms
 | Coverage | 89.78% statements (712/793); 85.83% branches (521/607); 89.57% functions (232/259); 92.55% lines (634/685) | PASSED unchanged floors |
 | Production build | 9 routes | PASSED |
 | Dependency audit | 0 vulnerabilities | PASSED |
-| Initial shell | 202,616 B gzip / 205,000 B | PASSED; +291 B from V7, 2,384 B headroom |
+| Initial shell | 202,619 B gzip / 205,000 B | PASSED; +294 B from V7, 2,381 B headroom |
 | Static document | 14,151 B | PASSED; unchanged |
 | Routes / health / security | six production routes probed at 200; health HEAD 204/body 0; CSP/HSTS/frame/MIME/no-store present | PASSED |
 | Playwright | 60 configured: 2 request-only pass, 58 browser-dependent launch failures | BLOCKED by absent Chromium before product execution |
@@ -344,6 +344,6 @@ Invariant Gate: project identity, routes, figures, formulas, scenario transforms
 
 - **Target user/domain master:** keyboard operation now follows control intent; audit scenarios and telemetry state are more legible without changing the narrative or data.
 - **Principal architect/efficiency:** the two small shared structures justify their measured +202 B shell cost; no dependency or new asset was added.
-- **Risk/hostile review:** the newly configured browser regression could not execute here, nor could axe, responsive, download, or real frame tests. The 2,384 B shell headroom is narrow. Existing CSP, Arabic-review, Docker, database, asset-rights, and illustrative-data residuals remain as recorded above.
+- **Risk/hostile review:** the newly configured browser regression could not execute here, nor could axe, responsive, download, or real frame tests. The 2,381 B shell headroom is narrow. Existing CSP, Arabic-review, Docker, database, asset-rights, and illustrative-data residuals remain as recorded above.
 - **Owner judgment:** ship this bounded continuation. Rejected: visual redesign, native-input restyling, dependency churn, and speculative bundle surgery; each carried more regression risk than demonstrated value.
 - **Next moves:** run all 60 Playwright checks in browser-equipped CI; measure representative-device CWV/frame behavior; obtain authorized Arabic/domain and asset review. No other high-confidence local work exceeds preservation value.
