@@ -111,39 +111,29 @@ button:focus-visible {
 }
 
 /*
- * The readable deck is a sibling overlay rather than drei's `Scroll html`
- * portal. The wrapper is transparent to wheel events so ScrollControls keeps
- * ownership of the native scroller; only actual controls opt back into hit
- * testing. The track is moved by the native scroll bridge, keeping the
- * readable layer locked to the scroll position without a second React root.
+ * The readable deck is portaled into this absolute host inside drei's real
+ * scroll element. Native scrolling then moves the HTML and 3D layers from
+ * the same source, without a second React root or a transform bridge that
+ * can drift from the browser's viewport. The host itself is transparent to
+ * pointer input so ScrollControls keeps ownership of wheel/touch gestures;
+ * actual controls opt back into hit testing below.
  */
-.html-deck-frame {
-  position: fixed;
-  inset: 0;
-  z-index: 10;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.html-deck-track {
+.html-deck-host {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 500vh;
+  inset: 0 0 auto;
+  z-index: 10;
+  height: 500%;
   pointer-events: none;
-  transform: translate3d(0, 0, 0);
-  will-change: transform;
 }
 
-.html-deck-track :where(button, a) {
+.html-deck-host :where(button, a) {
   pointer-events: auto;
 }
 
 /* Keep table surfaces transparent to wheel/touch input so the underlying
  * ScrollControls element remains the scroll target. They are still keyboard
  * focusable because pointer-events does not affect tab navigation. */
-.html-deck-track .table-overflow {
+.html-deck-host .table-overflow {
   pointer-events: none;
 }
 
@@ -299,14 +289,11 @@ button:focus-visible {
    * promises the engine that nothing inside can affect layout, paint or
    * style outside it, so a framer-motion opacity/transform change on the
    * entering section no longer invalidates the other four full-viewport
-   * subtrees stacked in the translated HTML track.
+   * subtrees stacked in the native scroll host.
    *
-   * ARCHIVED (not deleted) -- the two declarations below were dead:
-   *     scroll-snap-align: start;
-   *     scroll-snap-stop: always;
-   * The sections now live in a sibling fixed track, not in the native
-   * scroller's flow, so these were never valid snap targets. The matching
-   * `scroll-snap-type` on the container has been dropped in Presentation.tsx.
+   * Scroll snapping is intentionally omitted: the briefing follows the
+   * browser's continuous native scroll position, while nav and keyboard
+   * jumps choose exact section offsets explicitly.
    */
   contain: layout paint style;
 }

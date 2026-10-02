@@ -4,7 +4,8 @@ import { Canvas } from "@react-three/fiber";
 import { AdaptiveDpr, Preload, ScrollControls, useScroll } from "@react-three/drei";
 import { motion } from "framer-motion";
 import { ChevronDown, FileText, Keyboard, Languages, Moon, Sun } from "lucide-react";
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
+import { createPortal } from "react-dom";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { presentationCopy } from "@/lib/data";
 import { t, text } from "@/lib/i18n";
 import { DURATION, transition } from "@/lib/motion";
@@ -47,39 +48,34 @@ interface DeckOverlayProps {
   language: Language;
   reduced: boolean;
   activeSection: number;
-  trackRef: MutableRefObject<HTMLDivElement | null>;
+  host: HTMLElement | null;
 }
 
 /**
  * Accessible content layer for the deck.
  *
- * This deliberately lives beside the canvas, not inside drei's `<Scroll
- * html>` helper. That helper portals its children into a second React root;
- * under React 19 the bridge can race the Canvas context and emit the fatal
- * "Hooks can only be used within the Canvas component" error. The scene still
- * uses ScrollControls for its normalized offset, while the native scroll
- * bridge moves this fixed overlay with the exact scroll range in one
- * composited transform. The result is one scroll source, two render layers,
- * and no cross-root React ownership or context leakage.
+ * The briefing is portaled into a host owned by ScrollControls, but this is
+ * still the same React root as the presentation. That gives the HTML layer
+ * the browser's native scroll positioning while avoiding both a second React
+ * root and a transform bridge that can drift from the real scroll viewport.
  */
-function DeckOverlay({ language, reduced, activeSection, trackRef }: DeckOverlayProps) {
-  return (
-    <div className="html-deck-frame">
-      <div ref={trackRef} className="html-deck-track">
-        <main
-          id="presentation-content"
-          className="presentation-scroll"
-          aria-label={t("presentationLandmark", language)}
-          tabIndex={-1}
-        >
-          <HeroSection language={language} active={activeSection === 0} reduced={reduced} />
-          <AuditSection language={language} active={activeSection === 1} reduced={reduced} />
-          <DemandSection language={language} active={activeSection === 2} reduced={reduced} />
-          <RoutesSection language={language} active={activeSection === 3} reduced={reduced} />
-          <WarehouseSection language={language} active={activeSection === 4} reduced={reduced} />
-        </main>
-      </div>
-    </div>
+function DeckOverlay({ language, reduced, activeSection, host }: DeckOverlayProps) {
+  if (!host) return null;
+
+  return createPortal(
+    <main
+      id="presentation-content"
+      className="presentation-scroll"
+      aria-label={t("presentationLandmark", language)}
+      tabIndex={-1}
+    >
+      <HeroSection language={language} active={activeSection === 0} reduced={reduced} />
+      <AuditSection language={language} active={activeSection === 1} reduced={reduced} />
+      <DemandSection language={language} active={activeSection === 2} reduced={reduced} />
+      <RoutesSection language={language} active={activeSection === 3} reduced={reduced} />
+      <WarehouseSection language={language} active={activeSection === 4} reduced={reduced} />
+    </main>,
+    host,
   );
 }
 
@@ -94,8 +90,9 @@ export function Presentation() {
   );
   const [pageVisible, setPageVisible] = useState(true);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [scrollHost, setScrollHost] = useState<HTMLElement | null>(null);
   const scrollElement = useRef<HTMLDivElement | null>(null);
-  const htmlTrackRef = useRef<HTMLDivElement | null>(null);
+  const scrollHostRef = useRef<HTMLElement | null>(null);
   const scrollListener = useRef<(() => void) | null>(null);
   const pendingSection = useRef<number | null>(
     sectionIndexFromHash(typeof window === "undefined" ? null : window.location.hash),
@@ -118,6 +115,15 @@ export function Presentation() {
     scrollListener.current?.();
     scrollElement.current = element;
 
+    // The host is an absolute, full-deck child of the real scroll element.
+    // Its contents therefore move with native scrolling, while pointer events
+    // continue through the readable layer to ScrollControls underneath.
+    const host = document.createElement("div");
+    host.className = "html-deck-host";
+    element.appendChild(host);
+    scrollHostRef.current = host;
+    setScrollHost(host);
+
     /*
      * PERF: `scrollHeight` and `clientHeight` are layout-dependent reads.
      * Taking them inside the scroll handler forced a style+layout flush on
@@ -135,14 +141,9 @@ export function Presentation() {
     };
 
     const sync = () => {
-      // Keep the readable layer tied to the native scroller. This immediate
-      // composited write also makes deep links work while the 3D chunk is
-      // still loading; the camera is free to ease independently.
-      const track = htmlTrackRef.current;
-      const range = Math.max(0, scrollHeight - clientHeight);
-      if (track && range > 0) {
-        track.style.transform = `translate3d(0, -${element.scrollTop}px, 0)`;
-      }
+      // Native scrolling positions the portaled briefing directly. The
+      // camera is free to ease independently without a second visual scroll
+      // transform that could drift from the browser's viewport.
       setActiveSection(sectionFromScrollTop(element.scrollTop, scrollHeight, clientHeight));
     };
 
@@ -182,14 +183,13 @@ export function Presentation() {
         pendingSection.current = null;
         const targetTop = scrollTopForSection(requested, element.scrollHeight, element.clientHeight);
         element.scrollTo({ top: targetTop, behavior: "auto" });
-        htmlTrackRef.current?.style.setProperty("transform", `translate3d(0, -${targetTop}px, 0)`);
         /*
          * drei ignores the very first scroll event it sees (it sets
          * `scrollTop = 1` on mount to allow upward scrolling, and suppresses
          * the event that causes). A deep link applied in that window moved
          * the container but left drei's own offset at 0, so the DOM said
-         * "warehouse" while the camera and the translated HTML stayed on the
-         * overview. Re-announce the position once that guard has cleared.
+         * "warehouse" while the camera stayed on the overview. Re-announce
+         * the position once that guard has cleared.
          */
         frame = requestAnimationFrame(() => {
           frame = requestAnimationFrame(() => {
@@ -205,7 +205,10 @@ export function Presentation() {
       cancelAnimationFrame(frame);
       observer?.disconnect();
       element.removeEventListener("scroll", sync);
-      if (htmlTrackRef.current) htmlTrackRef.current.style.transform = "translate3d(0, 0, 0)";
+      if (scrollHostRef.current === host) {
+        host.remove();
+        scrollHostRef.current = null;
+      }
       if (scrollElement.current === element) scrollElement.current = null;
     };
   }, []);
@@ -222,12 +225,10 @@ export function Presentation() {
       return;
     }
     // Deliberately an instant native jump: the camera and scene still ease
-    // toward the new position, while the readable layer parks on the exact
-    // section immediately. Native smooth scrolling would fight ScrollControls'
-    // damping and can be interrupted mid-flight.
-    const targetTop = scrollTopForSection(target, element.scrollHeight, element.clientHeight);
-    element.scrollTo({ top: targetTop, behavior: "auto" });
-    htmlTrackRef.current?.style.setProperty("transform", `translate3d(0, -${targetTop}px, 0)`);
+    // toward the new position, and the readable layer follows through the
+    // browser's own scroll positioning. Native smooth scrolling would fight
+    // ScrollControls' damping and can be interrupted mid-flight.
+    element.scrollTo({ top: scrollTopForSection(target, element.scrollHeight, element.clientHeight), behavior: "auto" });
   }, []);
 
   // --- Deep linking -------------------------------------------------------
@@ -365,11 +366,10 @@ export function Presentation() {
 
         <div className="navigation-actions">
           {/*
-            A plain <a>, not next/link, on purpose. drei renders the scrolled
-            HTML into a second React root; unmounting the deck client-side
-            tears the two roots down out of order and the orphaned tree throws
-            "R3F: Hooks can only be used within the Canvas component!". A full
-            navigation avoids the race and releases the WebGL context too.
+            A plain <a>, not next/link, on purpose. Leaving the control room
+            should release the WebGL context and the native scroll host in one
+            full navigation rather than keeping a heavy scene mounted behind
+            the handout.
           */}
           <a className="control-button" href="/handout">
             <FileText size={15} aria-hidden="true" />
@@ -448,8 +448,8 @@ export function Presentation() {
               /*
                * `damping` is a smooth-time in seconds: drei eases its own
                * `offset` toward the raw scroll position over this window,
-               * and BOTH the camera rig and the translated HTML follow the
-               * eased value. At 0.25 the deck visibly trailed the wheel by
+               * while the HTML briefing follows the native scroll position.
+               * At 0.25 the 3D deck visibly trailed the wheel by
                * a quarter second -- which reads as "slow/laggy scrolling"
                * even at a perfect 60fps. 0.12 keeps the easing (no harsh
                * 1:1 snap, no judder on discrete wheel steps) while halving
@@ -458,13 +458,10 @@ export function Presentation() {
               damping={reduced ? 0 : 0.12}
               /*
                * `scrollSnapType: y mandatory` + `scrollSnapStop: always`
-               * were removed. The readable deck now lives in a sibling
-               * fixed track, so the sections are not in this container's
-               * scrollable flow and were never valid snap targets -- the
-               * only in-flow child is drei's empty fill div. The declaration
-               * therefore snapped nothing while still making the compositor
-               * run snap-target resolution on each scroll update, and
-               * `overscroll-behavior` work on top.
+               * stay off because the briefing is intentionally a continuous
+               * native scroll layer. Snapping would interrupt wheel and
+               * keyboard navigation, while `overscroll-behavior` still keeps
+               * the deck from leaking scroll into the page.
                */
               style={{
                 scrollbarWidth: "none",
@@ -488,7 +485,7 @@ export function Presentation() {
         language={language}
         reduced={reduced}
         activeSection={activeSection}
-        trackRef={htmlTrackRef}
+        host={scrollHost}
       />
 
       <nav className="presentation-progress" aria-label={t("progress", language)}>
