@@ -21,7 +21,7 @@ This document is written to be **sufficient to rebuild the application from scra
 | Data layer | drizzle-orm + `pg`, lazily instantiated and entirely optional |
 | Language | TypeScript 5.9, `strict` |
 | Runtime floor | Node.js 22 (`engines`, `.nvmrc`) |
-| Source size | 53 TypeScript/TSX modules / 7,016 lines under `src/`, plus 3,138 CSS lines; 22 TypeScript/TSX test modules / 2,349 lines (measured 2026-10-02) |
+| Source size | 53 TypeScript/TSX modules / 7,059 lines under `src/`, plus 3,156 CSS lines; 22 TypeScript/TSX test modules / 2,353 lines (measured 2026-10-02) |
 
 **Definition of success** (the measurable contract this build is held to):
 
@@ -229,7 +229,7 @@ The keyboard-help sheet, recovery calculator, and node inspector use native `<di
 
 ## 5. Accessibility specification
 
-**CONFIRMED by source and unit behavior.** `tests/e2e/accessibility.spec.ts` is configured to run axe-core against WCAG 2.1 A + AA on the entry shell, the handout in both languages, and the control room. In the 2026-10-02 V8 run, browser-rendered checks were not re-measured because Chromium was unavailable; 2 request-only Playwright checks passed and 58 browser-dependent checks were blocked before product execution.
+**MEASURED in browser-equipped CI.** `tests/e2e/accessibility.spec.ts` runs axe-core against WCAG 2.1 A + AA on the entry shell, the handout in both languages, and the control room. On 2026-10-02, all 60 configured Playwright checks passed across desktop Chromium, reduced-motion, and mobile projects, including functional, accessibility, download, layout-shift, and frame-budget checks.
 
 - Skip link (`#presentation-content` on `/`, `#handout-main` on `/handout`) as the first focusable element; the target carries `tabIndex={-1}` so focus actually lands there.
 - Each section is `<section id="section-<slug>" aria-labelledby="<slug>-title">`; Hero's heading is the page `h1`, the rest are `h2`.

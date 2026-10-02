@@ -315,6 +315,7 @@ Scores are **ESTIMATED expert judgments**, not instrument output. The rubric is 
 - Localized remaining visible theme/audio/node-selector chrome in Arabic, changed the node collection from an unsupported toolbar pattern to a labeled group, and exposed node/calculator/help dialog intent.
 - Muted success events now return before allocating two follow-up timers.
 - Added pure keyboard-boundary tests, expanded scenario/telemetry/audio behavior tests, and added a browser regression for focused-control and modal shortcut isolation.
+- Browser-equipped PR CI exposed narrow-header overflow and startup races between shortcut intent and the async scroll bridge. Compact responsive controls, a stable interactivity marker/listener, fresh scroll geometry, and synchronous hash intent closed those defects; the final browser run passed 60/60 without retries.
 
 Invariant Gate: project identity, routes, figures, formulas, scenario transforms, exports, English/Arabic structure, 3D ownership, security policy, and dependency set are unchanged. No cross-boundary file outside the repository target was touched. Build/tests remain green; payload remains bounded.
 
@@ -330,7 +331,7 @@ Invariant Gate: project identity, routes, figures, formulas, scenario transforms
 | Initial shell | 202,616 B gzip / 205,000 B | PASSED; +291 B from V7, 2,384 B headroom |
 | Static document | 14,151 B | PASSED; unchanged |
 | Routes / health / security | six production routes probed at 200; health HEAD 204/body 0; CSP/HSTS/frame/MIME/no-store present | PASSED |
-| Playwright | 60 configured: 2 request-only pass, 58 browser-dependent launch failures | BLOCKED by absent Chromium before product execution |
+| Playwright | 60/60 across desktop Chromium, reduced-motion, and mobile; functional, axe, download, layout-shift, and frame checks included | PASSED in browser-equipped PR CI |
 
 ### Material quality delta
 
@@ -344,6 +345,6 @@ Invariant Gate: project identity, routes, figures, formulas, scenario transforms
 
 - **Target user/domain master:** keyboard operation now follows control intent; audit scenarios and telemetry state are more legible without changing the narrative or data.
 - **Principal architect/efficiency:** the two small shared structures justify their measured +202 B shell cost; no dependency or new asset was added.
-- **Risk/hostile review:** the newly configured browser regression could not execute here, nor could axe, responsive, download, or real frame tests. The 2,384 B shell headroom is narrow. Existing CSP, Arabic-review, Docker, database, asset-rights, and illustrative-data residuals remain as recorded above.
+- **Risk/hostile review:** all configured browser checks now pass in CI, but representative-device CWV/GPU behavior remains unmeasured and the 2,384 B shell headroom is narrow. Existing CSP, Arabic-review, Docker, database, asset-rights, and illustrative-data residuals remain as recorded above.
 - **Owner judgment:** ship this bounded continuation. Rejected: visual redesign, native-input restyling, dependency churn, and speculative bundle surgery; each carried more regression risk than demonstrated value.
-- **Next moves:** run all 60 Playwright checks in browser-equipped CI; measure representative-device CWV/frame behavior; obtain authorized Arabic/domain and asset review. No other high-confidence local work exceeds preservation value.
+- **Next moves:** measure representative-device CWV/GPU behavior; exercise Docker and real PostgreSQL readiness; obtain authorized Arabic/domain and asset review. No other high-confidence local work exceeds preservation value.
