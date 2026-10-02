@@ -93,6 +93,7 @@ export function Presentation() {
   const [scrollHost, setScrollHost] = useState<HTMLElement | null>(null);
   const scrollElement = useRef<HTMLDivElement | null>(null);
   const scrollHostRef = useRef<HTMLElement | null>(null);
+  const scrollMetricsRef = useRef({ scrollHeight: 0, clientHeight: 0 });
   const scrollListener = useRef<(() => void) | null>(null);
   const pendingSection = useRef<number | null>(
     sectionIndexFromHash(typeof window === "undefined" ? null : window.location.hash),
@@ -147,13 +148,15 @@ export function Presentation() {
     const measure = () => {
       scrollHeight = element.scrollHeight;
       clientHeight = element.clientHeight;
+      scrollMetricsRef.current = { scrollHeight, clientHeight };
     };
 
     const sync = () => {
       // Native scrolling positions the portaled briefing directly. The
       // camera is free to ease independently without a second visual scroll
       // transform that could drift from the browser's viewport.
-      setActiveSection(sectionFromScrollTop(element.scrollTop, scrollHeight, clientHeight));
+      const metrics = scrollMetricsRef.current;
+      setActiveSection(sectionFromScrollTop(element.scrollTop, metrics.scrollHeight, metrics.clientHeight));
     };
 
     const observer =
@@ -236,11 +239,18 @@ export function Presentation() {
       pendingSection.current = target;
       return;
     }
+    // Refresh the cached geometry before a programmatic jump. On narrow
+    // layouts the section min-heights can expand after the host first mounts,
+    // and a stale range would make End stop on the middle of the deck.
+    const scrollHeight = element.scrollHeight;
+    const clientHeight = element.clientHeight;
+    scrollMetricsRef.current = { scrollHeight, clientHeight };
+
     // Deliberately an instant native jump: the camera and scene still ease
     // toward the new position, and the readable layer follows through the
     // browser's own scroll positioning. Native smooth scrolling would fight
     // ScrollControls' damping and can be interrupted mid-flight.
-    element.scrollTo({ top: scrollTopForSection(target, element.scrollHeight, element.clientHeight), behavior: "auto" });
+    element.scrollTo({ top: scrollTopForSection(target, scrollHeight, clientHeight), behavior: "auto" });
   }, []);
 
   // --- Deep linking -------------------------------------------------------

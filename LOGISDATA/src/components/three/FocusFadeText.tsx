@@ -24,6 +24,11 @@ interface FocusFadeTextProps extends Omit<TextProps, "children"> {
 export function FocusFadeText({ sectionIndex, children, ...props }: FocusFadeTextProps) {
   const textRef = useRef<THREE.Mesh>(null);
   const scroll = useScroll();
+  // Small screens already carry the complete accessible briefing in the
+  // native layer. Skipping SDF labels there avoids starting Troika's worker
+  // during a short mobile session, which also makes immediate navigation to
+  // the text briefing safe while preserving the desktop annotations.
+  const compactViewport = typeof window !== "undefined" && window.innerWidth < 768;
 
   useFrame(() => {
     const mesh = textRef.current;
@@ -40,6 +45,8 @@ export function FocusFadeText({ sectionIndex, children, ...props }: FocusFadeTex
       material.depthWrite = focus > 0.5;
     }
   });
+
+  if (compactViewport) return null;
 
   return (
     <Text
