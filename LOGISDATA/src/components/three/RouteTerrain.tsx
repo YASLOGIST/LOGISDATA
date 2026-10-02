@@ -1,6 +1,6 @@
 "use client";
 
-import { Html, Line, useScroll } from "@react-three/drei";
+import { Line, useScroll } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
@@ -8,7 +8,7 @@ import { presentationCopy } from "@/lib/data";
 import { text } from "@/lib/i18n";
 import type { Language, ThemeMode } from "@/lib/types";
 import { getSectionApproach } from "@/lib/sceneFocus";
-import { FocusFadeLabel } from "./FocusFadeLabel";
+import { FocusFadeText } from "./FocusFadeText";
 
 const SECTION_INDEX = 3;
 
@@ -90,12 +90,26 @@ export function RouteTerrain({ language, theme }: RouteTerrainProps) {
         <sphereGeometry args={[0.1, 8, 6]} />
         <meshStandardMaterial color="#fb5b5b" emissive="#fb5b5b" emissiveIntensity={2} />
       </mesh>
-      <Html position={[-3.45, 1.05, 0.9]} center distanceFactor={8}>
-        <FocusFadeLabel sectionIndex={SECTION_INDEX} className="scene-label scene-label-good"><span className="scene-label-dot" /><span>{text(presentationCopy.routes.optimized, language)}</span></FocusFadeLabel>
-      </Html>
-      <Html position={[1.65, 1.3, 1.35]} center distanceFactor={8}>
-        <FocusFadeLabel sectionIndex={SECTION_INDEX} className="scene-label scene-label-warning"><span className="scene-label-dot" /><span>{text(presentationCopy.routes.detour, language)}</span></FocusFadeLabel>
-      </Html>
+      <FocusFadeText
+        position={[-3.45, 1.05, 0.9]}
+        sectionIndex={SECTION_INDEX}
+        fontSize={0.18}
+        color="#4de1c1"
+        outlineWidth={0.012}
+        outlineColor="#06121d"
+      >
+        {text(presentationCopy.routes.optimized, language)}
+      </FocusFadeText>
+      <FocusFadeText
+        position={[1.65, 1.3, 1.35]}
+        sectionIndex={SECTION_INDEX}
+        fontSize={0.18}
+        color="#fb5b5b"
+        outlineWidth={0.012}
+        outlineColor="#06121d"
+      >
+        {text(presentationCopy.routes.detour, language)}
+      </FocusFadeText>
     </group>
   );
 }

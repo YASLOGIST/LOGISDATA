@@ -1,6 +1,6 @@
 "use client";
 
-import { Html, useScroll } from "@react-three/drei";
+import { useScroll } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import * as THREE from "three";
@@ -8,7 +8,7 @@ import { demandTiers, presentationCopy } from "@/lib/data";
 import { text } from "@/lib/i18n";
 import type { DemandTier, Language, ThemeMode } from "@/lib/types";
 import { easeApproach, getSectionApproach } from "@/lib/sceneFocus";
-import { FocusFadeLabel } from "./FocusFadeLabel";
+import { FocusFadeText } from "./FocusFadeText";
 
 const SECTION_INDEX = 2;
 
@@ -72,21 +72,31 @@ export function DemandMatrix({ language, theme }: DemandMatrixProps) {
             <DemandBar tier={tier} index={index} series="actual" theme={theme} />
             <group position={[0.52, 0, 0]}><DemandBar tier={tier} index={index} series="distorted" theme={theme} /></group>
             <group position={[1.04, 0, 0]}><DemandBar tier={tier} index={index} series="audited" theme={theme} /></group>
-            <Html position={[0.52, -2.05, 0]} center distanceFactor={8}>
-              <FocusFadeLabel sectionIndex={SECTION_INDEX} className="scene-label scene-label-muted">
-                <span>{text(tier.label, language)}</span>
-              </FocusFadeLabel>
-            </Html>
+            <FocusFadeText
+              position={[0.52, -2.05, 0]}
+              sectionIndex={SECTION_INDEX}
+              fontSize={0.16}
+              color={theme === "dark" ? "#c4d6e3" : "#0f2942"}
+              outlineWidth={0.01}
+              outlineColor="#06121d"
+            >
+              {text(tier.label, language)}
+            </FocusFadeText>
           </group>
         );
       })}
-      <Html position={[3.7, 2.05, 0]} center distanceFactor={8}>
-        <FocusFadeLabel sectionIndex={SECTION_INDEX} className="scene-label scene-label-good">
-          <span className="scene-label-dot" />
-          <span>{text(presentationCopy.demand.smoothingLabel, language)}</span>
-          <strong>{text(presentationCopy.demand.chartAudited, language)}</strong>
-        </FocusFadeLabel>
-      </Html>
+      <FocusFadeText
+        position={[3.7, 2.05, 0]}
+        sectionIndex={SECTION_INDEX}
+        fontSize={0.18}
+        color="#4de1c1"
+        outlineWidth={0.012}
+        outlineColor="#06121d"
+        textAlign="center"
+      >
+        {text(presentationCopy.demand.smoothingLabel, language)}{"\n"}
+        {text(presentationCopy.demand.chartAudited, language)}
+      </FocusFadeText>
     </group>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { AdaptiveDpr, Html, Preload, ScrollControls, useScroll } from "@react-three/drei";
+import { AdaptiveDpr, Preload, ScrollControls, useScroll } from "@react-three/drei";
 import { motion } from "framer-motion";
 import { ChevronDown, FileText, Keyboard, Languages, Moon, Sun } from "lucide-react";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
@@ -55,18 +55,6 @@ function ScrollBridge({ onReady, trackRef }: ScrollBridgeProps) {
   });
 
   return null;
-}
-
-function SceneLoader({ language }: { language: Language }) {
-  return (
-    <Html center>
-      <div className="scene-loader">
-        <div className="loader-orbit" aria-hidden="true"><span /></div>
-        <strong>AAST / CONTROL ROOM</strong>
-        <span>{t("loadingModel", language)}</span>
-      </div>
-    </Html>
-  );
 }
 
 interface DeckOverlayProps {
@@ -468,7 +456,7 @@ export function Presentation() {
            */
           performance={{ min: 0.6, max: 1, debounce: 220 }}
         >
-          <Suspense fallback={<SceneLoader language={language} />}>
+          <Suspense fallback={null}>
             <AdaptiveDpr pixelated={false} />
             <ScrollControls
               pages={SECTION_COUNT}
