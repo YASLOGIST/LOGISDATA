@@ -251,8 +251,15 @@ export function Presentation() {
   const goToSection = useCallback((targetIndex: number) => {
     sound.playClick();
     const index = clampSectionIndex(targetIndex);
+    const targetHash = hashFromSectionIndex(index);
+    if (window.location.hash !== targetHash) {
+      window.history.replaceState(null, "", targetHash);
+    }
+
     const element = scrollElement.current;
     if (!element) {
+      // Preserve the operator's intent during the short WebGL/scroll bridge
+      // startup window; onScrollReady consumes this destination.
       pendingSection.current = index;
       return;
     }
@@ -263,10 +270,6 @@ export function Presentation() {
     scrollMetricsRef.current = metrics;
     const targetTop = scrollTopForSection(index, metrics.scrollHeight, metrics.clientHeight);
     element.scrollTo({ top: targetTop, behavior: "smooth" });
-    const targetHash = hashFromSectionIndex(index);
-    if (window.location.hash !== targetHash) {
-      window.history.replaceState(null, "", targetHash);
-    }
   }, []);
 
   useEffect(() => {
