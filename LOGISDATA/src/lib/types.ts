@@ -2,6 +2,8 @@ export type Language = "en" | "ar";
 export type ThemeMode = "dark" | "light";
 export type AccentTone = "amber" | "emerald" | "cyan" | "red";
 export type AuditVerdict = "red-flag" | "passed";
+export type AuditScenario = "baseline" | "active-audit" | "mitigated";
+export type TelemetrySeverity = "critical" | "warning" | "reconciled" | "optimized";
 
 export interface LocalizedText {
   en: string;
@@ -69,6 +71,47 @@ export interface SupplyNode {
   label: LocalizedText;
   position: [number, number, number];
   status: "verified" | "leak" | "phantom";
+}
+
+export interface SupplyNodeDetail {
+  id: string;
+  label: LocalizedText;
+  role: LocalizedText;
+  throughputTons: number;
+  transitVarianceHours: number;
+  activeCarriers: number;
+  leakageRiskPct: number;
+  status: "verified" | "leak" | "phantom";
+  telemetryStream: LocalizedText;
+  anomalies: LocalizedText[];
+}
+
+export interface TelemetryEvent {
+  id: string;
+  timestamp: string;
+  gateId: "invoice" | "demand" | "fleet" | "warehouse" | "network";
+  severity: TelemetrySeverity;
+  code: string;
+  message: LocalizedText;
+  deltaValue?: string;
+  metricImpact?: LocalizedText;
+}
+
+export interface RecoveryParameters {
+  annualFreightSpend: number;
+  annualOrderUnits: number;
+  skuCatalogSize: number;
+  averageMarginPct: number;
+}
+
+export interface RecoveryBreakdown {
+  freightSavings: number;
+  bullwhipSavings: number;
+  routeSavings: number;
+  warehouseSavings: number;
+  totalAnnualRecovery: number;
+  marginImprovementBps: number;
+  paybackMonths: number;
 }
 
 export interface PresentationCopy {

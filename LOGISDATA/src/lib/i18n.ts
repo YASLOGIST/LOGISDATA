@@ -18,10 +18,7 @@ export function isRtl(language: Language): boolean {
 
 /**
  * `Intl.NumberFormat` construction is one of the most expensive calls in
- * the browser's i18n layer. The previous implementation built a fresh
- * formatter for every number rendered -- in the audit table alone that is
- * 20 constructions per render, re-run on every framer-motion frame. The
- * formatters are now cached by locale + option signature.
+ * the browser's i18n layer. The formatters are cached by locale + option signature.
  */
 const formatterCache = new Map<string, Intl.NumberFormat>();
 
@@ -70,14 +67,12 @@ export function decimals(value: number, language: Language, digits: number): str
 }
 
 /**
- * UI chrome strings. Previously the intro screen, the engine error
- * boundary and several aria-labels were hard-coded English, so an Arabic
- * visitor hit three untranslated screens before reaching localized content.
+ * UI chrome strings. Full parity across English and Arabic.
  */
 export const ui = {
   presentationLandmark: {
     en: "Supply chain audit presentation",
-    ar: "\u0639\u0631\u0636 \u062a\u062f\u0642\u064a\u0642 \u0633\u0644\u0633\u0644\u0629 \u0627\u0644\u0625\u0645\u062f\u0627\u062f",
+    ar: "عرض تدقيق سلسلة الإمداد",
   },
   skipToContent: { en: "Skip to presentation content", ar: "تخطَّ إلى محتوى العرض" },
   enterControlRoom: { en: "Enter Control Room", ar: "ادخل غرفة التحكم" },
@@ -115,6 +110,7 @@ export const ui = {
   sections: { en: "Presentation sections", ar: "أقسام العرض" },
   goToStart: { en: "Go to presentation start", ar: "الانتقال إلى بداية العرض" },
   exportCsv: { en: "Export CSV", ar: "تصدير CSV" },
+  exportJson: { en: "Export JSON Audit", ar: "تصدير تدقيق JSON" },
   exportedToast: { en: "Dataset downloaded", ar: "تم تنزيل مجموعة البيانات" },
   shortcuts: { en: "Keyboard shortcuts", ar: "اختصارات لوحة المفاتيح" },
   closeDialog: { en: "Close", ar: "إغلاق" },
@@ -138,6 +134,54 @@ export const ui = {
   qualityHigh: { en: "High", ar: "عالية" },
   qualityMedium: { en: "Balanced", ar: "متوازنة" },
   qualityLow: { en: "Calm", ar: "هادئة" },
+
+  // Scenario engine strings
+  scenarioLabel: { en: "Audit Mode", ar: "نمط التدقيق" },
+  scenarioBaseline: { en: "01 Raw Discrepancy", ar: "٠١ فروقات غير مدققة" },
+  scenarioActive: { en: "02 Active Audit Gate", ar: "٠٢ بوابة تدقيق نشطة" },
+  scenarioMitigated: { en: "03 Closed-Loop Optim", ar: "٠٣ حلقة تحسين كاملة" },
+
+  // Live Telemetry
+  telemetryTitle: { en: "Live Audit Telemetry Stream", ar: "تدفق تليماتكس التدقيق اللحظي" },
+  telemetryToggle: { en: "Live Telemetry", ar: "التليماتكس المباشر" },
+  telemetryPause: { en: "Pause", ar: "إيقاف مؤقت" },
+  telemetryResume: { en: "Resume", ar: "استئناف" },
+  livePulse: { en: "STREAM ACTIVE", ar: "البث نشط" },
+
+  // Recovery Calculator
+  calculatorTitle: { en: "Executive Margin Recovery Calculator", ar: "حاسبة استرداد الهامش التنفيذية" },
+  calculatorOpen: { en: "ROI Calculator", ar: "حاسبة العائد" },
+  annualFreightSpend: { en: "Annual Freight Spend", ar: "الإنفاق السنوي على الشحن" },
+  annualOrderUnits: { en: "Annual Order Volume", ar: "حجم الطلبات السنوي" },
+  skuCatalogSize: { en: "Catalog SKU Count", ar: "عدد أصناف الكتالوج" },
+  freightRecovery: { en: "Freight & Billing Audit", ar: "تدقيق الشحن والفوترة" },
+  bullwhipRecovery: { en: "Bullwhip Buffer Release", ar: "تحرير مخزون التضخيم" },
+  routeRecovery: { en: "Route & Fuel Efficiency", ar: "كفاءة المسارات والوقود" },
+  warehouseRecovery: { en: "Warehouse Variance Rectification", ar: "تصحيح فروقات المستودع" },
+  totalAnnualRecovery: { en: "Total Annual Recovered Value", ar: "إجمالي القيمة المستردة سنويًا" },
+  marginExpansion: { en: "EBITDA Margin Expansion", ar: "تحسن هامش الأرباح" },
+  paybackPeriod: { en: "Payback Period", ar: "فترة الاسترداد" },
+  months: { en: "months", ar: "أشهر" },
+  basisPoints: { en: "bps", ar: "نقطة أساس" },
+
+  // Sound FX
+  soundOn: { en: "AUDIO: ON", ar: "الصوت: مفعّل" },
+  soundOff: { en: "AUDIO: MUTED", ar: "الصوت: صامت" },
+
+  // Node Inspector & Table Filters
+  nodeInspection: { en: "Node Telemetry", ar: "تليماتكس العقدة" },
+  allRecords: { en: "All", ar: "الكل" },
+  search: { en: "Search...", ar: "بحث..." },
+  filter: { en: "Filter", ar: "تصفية" },
+  status: { en: "Status", ar: "الحالة" },
+  verified: { en: "Verified", ar: "موثق" },
+  leakRisk: { en: "Leak Risk", ar: "مخاطر تسرب" },
+  phantom: { en: "Phantom Signal", ar: "إشارة وهمية" },
+  anomalies: { en: "Detected Anomalies", ar: "الانحرافات المكتشفة" },
+  throughput: { en: "Throughput (Tons)", ar: "معدل التدفق (طن)" },
+  carriers: { en: "Active Carriers", ar: "الناقلون النشطون" },
+  transitVariance: { en: "Transit Variance", ar: "تباين وقت النقل" },
+  hours: { en: "hrs", ar: "ساعة" },
 } satisfies Record<string, LocalizedText>;
 
 export type UiKey = keyof typeof ui;

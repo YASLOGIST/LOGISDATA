@@ -22,14 +22,30 @@ export function WarehouseGrid({ language, theme }: WarehouseGridProps) {
   const scanRef = useRef<THREE.Mesh>(null);
   const scroll = useScroll();
   const frameColor = theme === "dark" ? "#2e5265" : "#73989c";
-  const problemBins = useMemo(() => warehouseBins.filter((bin) => bin.status === "mismatch").slice(0, 3), []);
+  const problemBins = useMemo(
+    () => warehouseBins.filter((bin) => bin.status === "mismatch").slice(0, 3),
+    [],
+  );
   const boxGeometry = useMemo(() => new THREE.BoxGeometry(1, 1, 1), []);
-  const boxMaterial = useMemo(() => new THREE.MeshStandardMaterial({ vertexColors: true, transparent: true, opacity: 0.92, roughness: 0.48, metalness: 0.2 }), []);
+  const boxMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.92,
+        roughness: 0.48,
+        metalness: 0.2,
+      }),
+    [],
+  );
 
-  useEffect(() => () => {
-    boxGeometry.dispose();
-    boxMaterial.dispose();
-  }, [boxGeometry, boxMaterial]);
+  useEffect(
+    () => () => {
+      boxGeometry.dispose();
+      boxMaterial.dispose();
+    },
+    [boxGeometry, boxMaterial],
+  );
 
   useLayoutEffect(() => {
     const mesh = boxesRef.current;
@@ -57,12 +73,17 @@ export function WarehouseGrid({ language, theme }: WarehouseGridProps) {
     const targetY = THREE.MathUtils.lerp(-2.25, 2.25, easedProgress);
     scanRef.current.position.y = THREE.MathUtils.damp(scanRef.current.position.y, targetY, 5.5, step);
     const material = scanRef.current.material as THREE.MeshBasicMaterial;
-    material.opacity = THREE.MathUtils.lerp(0.08, 0.2, Math.sin(sectionProgress * Math.PI));
+    material.opacity = THREE.MathUtils.lerp(0.08, 0.22, Math.sin(sectionProgress * Math.PI));
   });
 
   return (
     <group position={[0, 0.05, 0]} rotation={[0, 0.12, 0]}>
-      <instancedMesh ref={boxesRef} args={[boxGeometry, boxMaterial, warehouseBins.length]} frustumCulled />
+      <instancedMesh
+        ref={boxesRef}
+        args={[boxGeometry, boxMaterial, warehouseBins.length]}
+        frustumCulled
+      />
+      {/* Rack structural framework */}
       <group>
         {[-4.2, -2.1, 0, 2.1, 4.2].map((x) => (
           <mesh key={`post-${x}`} position={[x, 0, -0.35]}>
@@ -83,14 +104,23 @@ export function WarehouseGrid({ language, theme }: WarehouseGridProps) {
           </mesh>
         ))}
       </group>
+
+      {/* Sweeping optical scanning sheet */}
       <mesh ref={scanRef} position={[0, -2.25, 0.1]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[9, 2.8, 1, 1]} />
-        <meshBasicMaterial color="#4de1c1" transparent opacity={0.12} side={THREE.DoubleSide} />
+        <meshBasicMaterial color="#4de1c1" transparent opacity={0.14} side={THREE.DoubleSide} />
       </mesh>
       <mesh position={[0, -2.25, 0.1]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[9, 2.8, 1, 1]} />
-        <meshBasicMaterial color="#4de1c1" wireframe transparent opacity={0.12} side={THREE.DoubleSide} />
+        <meshBasicMaterial
+          color="#4de1c1"
+          wireframe
+          transparent
+          opacity={0.12}
+          side={THREE.DoubleSide}
+        />
       </mesh>
+
       {problemBins.map((bin) => (
         <FocusFadeText
           key={bin.id}
@@ -102,10 +132,12 @@ export function WarehouseGrid({ language, theme }: WarehouseGridProps) {
           outlineColor="#06121d"
           textAlign="center"
         >
-          {text(bin.sku, language)}{"\n"}
+          {text(bin.sku, language)}
+          {"\n"}
           {text(presentationCopy.warehouse.callout, language)}
         </FocusFadeText>
       ))}
+
       <FocusFadeText
         position={[4.4, 2.35, 0]}
         sectionIndex={SECTION_INDEX}

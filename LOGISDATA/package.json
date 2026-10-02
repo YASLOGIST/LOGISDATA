@@ -1,6 +1,7 @@
 {
   "name": "logisdata-control-room",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -59,8 +60,8 @@
   "overrides": {
     "esbuild": "0.25.12"
   },
-  "version": "3.0.0",
-  "description": "Bilingual interactive supply-chain audit control room",
+  "version": "3.1.0",
+  "description": "Bilingual interactive supply-chain audit control room with live simulation and telemetry engine",
   "engines": {
     "node": ">=22.0.0"
   }

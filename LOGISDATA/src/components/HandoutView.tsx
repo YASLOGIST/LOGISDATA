@@ -2,7 +2,19 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowUpRight, Languages, Moon, Printer, Sun } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  ArrowUpRight,
+  Calculator,
+  DollarSign,
+  Download,
+  Languages,
+  Moon,
+  Printer,
+  Sparkles,
+  Sun,
+  TrendingUp,
+} from "lucide-react";
 import {
   auditMetrics,
   demandTiers,
@@ -11,32 +23,27 @@ import {
   routeRegions,
   warehouseSpecs,
 } from "@/lib/data";
+import { calculateRecovery, DEFAULT_RECOVERY_PARAMS } from "@/lib/simulation";
 import { currency, decimals, integer, number, percent, t, text } from "@/lib/i18n";
+import { downloadExecutiveReportJson } from "@/lib/export";
 import { auditSummary, demandSummary, routeSummary, warehouseSummary } from "@/lib/metrics";
 import { SECTIONS } from "@/lib/sections";
 import { PreferencesProvider, usePreferences } from "@/components/providers/PreferencesProvider";
 import { DatasetExport } from "@/components/ui/DatasetExport";
+import type { RecoveryParameters } from "@/lib/types";
 
-/**
- * Text briefing: a complete, dependency-light, printable rendering of the
- * same audit.
- *
- * This is simultaneously (a) the mandated static fallback for devices
- * without WebGL or with a slow connection, (b) the screen-reader-first
- * version of content that is otherwise narrated by a 3D camera, (c) the
- * indexable surface for search engines (the control room itself is an
- * `ssr: false` canvas with no crawlable prose), and (d) a print/PDF
- * handout for the room.
- *
- * It intentionally ships zero Three.js and zero framer-motion.
- */
 function Handout() {
   const { language, theme, rtl, toggleLanguage, toggleTheme } = usePreferences();
   const copy = presentationCopy;
+  const [calcParams, setCalcParams] = useState<RecoveryParameters>(DEFAULT_RECOVERY_PARAMS);
+
+  const recovery = useMemo(() => calculateRecovery(calcParams), [calcParams]);
 
   return (
     <div className="handout" data-theme={theme} dir={rtl ? "rtl" : "ltr"}>
-      <a className="skip-link" href="#handout-main">{t("skipToContent", language)}</a>
+      <a className="skip-link" href="#handout-main">
+        {t("skipToContent", language)}
+      </a>
 
       <header className="handout-header">
         <div className="handout-brand">
@@ -47,11 +54,31 @@ function Handout() {
           </div>
         </div>
         <div className="handout-actions no-print">
-          <button type="button" className="control-button" onClick={toggleLanguage} aria-label={text(copy.nav.language, language)}>
+          <button
+            type="button"
+            className="control-button"
+            onClick={() => downloadExecutiveReportJson(language)}
+            aria-label={t("exportJson", language)}
+          >
+            <Download size={15} aria-hidden="true" />
+            <span>JSON</span>
+          </button>
+          <button
+            type="button"
+            className="control-button"
+            onClick={toggleLanguage}
+            aria-label={text(copy.nav.language, language)}
+          >
             <Languages size={15} aria-hidden="true" />
             <span>{language === "en" ? "AR" : "EN"}</span>
           </button>
-          <button type="button" className="control-button" onClick={toggleTheme} aria-label={text(copy.nav.theme, language)} aria-pressed={theme === "light"}>
+          <button
+            type="button"
+            className="control-button"
+            onClick={toggleTheme}
+            aria-label={text(copy.nav.theme, language)}
+            aria-pressed={theme === "light"}
+          >
             {theme === "dark" ? <Sun size={15} aria-hidden="true" /> : <Moon size={15} aria-hidden="true" />}
             <span>{theme === "dark" ? "LIGHT" : "DARK"}</span>
           </button>
@@ -141,7 +168,9 @@ function Handout() {
               </tbody>
             </table>
           </div>
-          <div className="no-print"><DatasetExport dataset="freight-audit" language={language} /></div>
+          <div className="no-print">
+            <DatasetExport dataset="freight-audit" language={language} />
+          </div>
         </section>
 
         {/* 03 — demand distortion */}
@@ -176,7 +205,9 @@ function Handout() {
               </tbody>
             </table>
           </div>
-          <div className="no-print"><DatasetExport dataset="demand-signal" language={language} /></div>
+          <div className="no-print">
+            <DatasetExport dataset="demand-signal" language={language} />
+          </div>
         </section>
 
         {/* 04 — route intelligence */}
@@ -212,7 +243,9 @@ function Handout() {
               </tbody>
             </table>
           </div>
-          <div className="no-print"><DatasetExport dataset="route-intelligence" language={language} /></div>
+          <div className="no-print">
+            <DatasetExport dataset="route-intelligence" language={language} />
+          </div>
         </section>
 
         {/* 05 — warehouse control */}
@@ -227,13 +260,129 @@ function Handout() {
             {warehouseSpecs.map((spec) => (
               <li key={spec.id}>
                 <h3>{text(spec.title, language)}</h3>
-                <p><strong>{text(copy.warehouse.headers.impact, language)}:</strong> {text(spec.impact, language)}</p>
-                <p><strong>{text(copy.warehouse.headers.cause, language)}:</strong> {text(spec.cause, language)}</p>
-                <p><strong>{text(copy.warehouse.headers.fix, language)}:</strong> {text(spec.fix, language)}</p>
+                <p>
+                  <strong>{text(copy.warehouse.headers.impact, language)}:</strong> {text(spec.impact, language)}
+                </p>
+                <p>
+                  <strong>{text(copy.warehouse.headers.cause, language)}:</strong> {text(spec.cause, language)}
+                </p>
+                <p>
+                  <strong>{text(copy.warehouse.headers.fix, language)}:</strong> {text(spec.fix, language)}
+                </p>
               </li>
             ))}
           </ol>
-          <div className="no-print"><DatasetExport dataset="warehouse-control" language={language} /></div>
+          <div className="no-print">
+            <DatasetExport dataset="warehouse-control" language={language} />
+          </div>
+        </section>
+
+        {/* 06 — Interactive Executive Recovery Simulator (embedded in Handout) */}
+        <section
+          id="handout-recovery"
+          className="handout-recovery-section no-print"
+          aria-label={t("calculatorTitle", language)}
+        >
+          <div className="handout-recovery-head">
+            <Calculator size={20} className="inline-icon" aria-hidden="true" />
+            <strong className="handout-recovery-heading">{t("calculatorTitle", language)}</strong>
+          </div>
+          <div className="handout-recovery-grid">
+            <div className="handout-recovery-controls">
+              <div className="input-group">
+                <div className="input-header">
+                  <label htmlFor="h-input-freight">{t("annualFreightSpend", language)}</label>
+                  <strong dir="ltr">{currency(calcParams.annualFreightSpend, language)}</strong>
+                </div>
+                <input
+                  id="h-input-freight"
+                  type="range"
+                  min={2000000}
+                  max={100000000}
+                  step={1000000}
+                  value={calcParams.annualFreightSpend}
+                  onChange={(e) =>
+                    setCalcParams((p) => ({ ...p, annualFreightSpend: Number(e.target.value) }))
+                  }
+                  className="range-slider"
+                />
+              </div>
+
+              <div className="input-group">
+                <div className="input-header">
+                  <label htmlFor="h-input-units">{t("annualOrderUnits", language)}</label>
+                  <strong dir="ltr">{integer(calcParams.annualOrderUnits, language)}</strong>
+                </div>
+                <input
+                  id="h-input-units"
+                  type="range"
+                  min={50000}
+                  max={2500000}
+                  step={25000}
+                  value={calcParams.annualOrderUnits}
+                  onChange={(e) =>
+                    setCalcParams((p) => ({ ...p, annualOrderUnits: Number(e.target.value) }))
+                  }
+                  className="range-slider"
+                />
+              </div>
+
+              <div className="input-group">
+                <div className="input-header">
+                  <label htmlFor="h-input-skus">{t("skuCatalogSize", language)}</label>
+                  <strong dir="ltr">{integer(calcParams.skuCatalogSize, language)}</strong>
+                </div>
+                <input
+                  id="h-input-skus"
+                  type="range"
+                  min={1000}
+                  max={50000}
+                  step={1000}
+                  value={calcParams.skuCatalogSize}
+                  onChange={(e) =>
+                    setCalcParams((p) => ({ ...p, skuCatalogSize: Number(e.target.value) }))
+                  }
+                  className="range-slider"
+                />
+              </div>
+            </div>
+
+            <div className="handout-recovery-results">
+              <div className="handout-recovery-total">
+                <span>{t("totalAnnualRecovery", language)}</span>
+                <strong dir="ltr">
+                  <DollarSign size={20} className="inline-icon" aria-hidden="true" />
+                  {currency(recovery.totalAnnualRecovery, language)}
+                </strong>
+                <p>
+                  <TrendingUp size={14} className="inline-icon" aria-hidden="true" /> +
+                  {number(recovery.marginImprovementBps, language, 0)} {t("basisPoints", language)}{" "}
+                  {t("marginExpansion", language)} ·{" "}
+                  <Sparkles size={14} className="inline-icon" aria-hidden="true" />{" "}
+                  {number(recovery.paybackMonths, language, 1)} {t("months", language)}{" "}
+                  {t("paybackPeriod", language)}
+                </p>
+              </div>
+              <ul className="handout-recovery-breakdown">
+                <li>
+                  <span>{t("freightRecovery", language)}</span>
+                  <strong dir="ltr">{currency(recovery.freightSavings, language)}</strong>
+                </li>
+                <li>
+                  <span>{t("bullwhipRecovery", language)}</span>
+                  <strong dir="ltr">{currency(recovery.bullwhipSavings, language)}</strong>
+                </li>
+                <li>
+                  <span>{t("routeRecovery", language)}</span>
+                  <strong dir="ltr">{currency(recovery.routeSavings, language)}</strong>
+                </li>
+                <li>
+                  <span>{t("warehouseRecovery", language)}</span>
+                  <strong dir="ltr">{currency(recovery.warehouseSavings, language)}</strong>
+                </li>
+              </ul>
+            </div>
+          </div>
         </section>
 
         <footer className="handout-footer">

@@ -1,21 +1,28 @@
 "use client";
 
 import { memo } from "react";
-
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { ArrowDown, Network, ShieldCheck } from "lucide-react";
-import { auditMetrics, presentationCopy } from "@/lib/data";
+import { presentationCopy, supplyNodes } from "@/lib/data";
+import { getScenarioMetrics } from "@/lib/simulation";
 import { text } from "@/lib/i18n";
+import { sound } from "@/lib/sound";
 import { DURATION, transition } from "@/lib/motion";
 import { SECTIONS } from "@/lib/sections";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { MetricCounter } from "@/components/MetricCounter";
 import type { SectionProps } from "./types";
 
-function HeroSectionImpl({ language, active, reduced }: SectionProps) {
+function HeroSectionImpl({ language, active, reduced, scenario = "active-audit", onSelectNode }: SectionProps) {
   const copy = presentationCopy.hero;
   const dim = (value: number) => (active ? 1 : value);
+  const metrics = getScenarioMetrics(scenario);
+
+  const handleNodeClick = (nodeId: string) => {
+    sound.playClick();
+    onSelectNode?.(nodeId);
+  };
 
   return (
     <section
@@ -75,14 +82,39 @@ function HeroSectionImpl({ language, active, reduced }: SectionProps) {
               <span>{text(copy.date, language)}</span>
             </div>
           </div>
+
           <GlassCard className="network-status" tone="amber">
-            <div className="status-icon" aria-hidden="true"><Network size={16} strokeWidth={1.7} /></div>
+            <div className="status-icon" aria-hidden="true">
+              <Network size={16} strokeWidth={1.7} />
+            </div>
             <div>
               <p className="status-kicker">{text(copy.networkLabel, language)}</p>
               <p className="status-value">{text(copy.metricSource, language)}</p>
             </div>
             <span className="status-pulse" aria-hidden="true" />
           </GlassCard>
+
+          {/* Interactive Supply Nodes Quick Telemetry Bar */}
+          <div className="hero-nodes-bar" role="toolbar" aria-label="Supply chain node selector">
+            {supplyNodes.map((node) => {
+              const isLeak = node.status === "leak";
+              const isPhantom = node.status === "phantom";
+              const dotClass = isLeak ? "dot-red" : isPhantom ? "dot-amber" : "dot-green";
+              return (
+                <button
+                  key={node.id}
+                  type="button"
+                  className="hero-node-chip"
+                  onClick={() => handleNodeClick(node.id)}
+                  title={`Inspect ${text(node.label, language)}`}
+                >
+                  <span className={`node-dot ${dotClass}`} aria-hidden="true" />
+                  <span>{text(node.label, language)}</span>
+                </button>
+              );
+            })}
+          </div>
+
           <p className="hero-model-note">{text(copy.modelNote, language)}</p>
         </motion.div>
 
@@ -92,7 +124,7 @@ function HeroSectionImpl({ language, active, reduced }: SectionProps) {
           animate={{ opacity: dim(0.8), y: active || reduced ? 0 : 10 }}
           transition={transition(DURATION.cinematic, { reduced, delay: 0.2 })}
         >
-          {auditMetrics.map((metric) => (
+          {metrics.map((metric) => (
             <li key={metric.id}>
               <GlassCard tone={metric.tone} className="hero-metric-card">
                 <MetricCounter metric={metric} language={language} reduced={reduced} />
@@ -103,7 +135,8 @@ function HeroSectionImpl({ language, active, reduced }: SectionProps) {
 
         <div className="hero-footer-line">
           <div className="verified-line">
-            <ShieldCheck size={14} aria-hidden="true" /> <span>{text(copy.labLabel, language)}</span>
+            <ShieldCheck size={14} aria-hidden="true" />{" "}
+            <span>{text(copy.labLabel, language)}</span>
           </div>
           <div className="scroll-cue" aria-hidden="true">
             <span>{text(presentationCopy.nav.scrollHint, language)}</span>
@@ -115,11 +148,4 @@ function HeroSectionImpl({ language, active, reduced }: SectionProps) {
   );
 }
 
-/**
- * PERF: memoised. Crossing a section boundary flips `active` on exactly
- * two of the five sections, but the parent re-render used to reconcile all
- * five full-viewport subtrees (cards, tables, counters, framer-motion
- * nodes) on that same frame. With `memo` only the leaving and entering
- * sections do any work.
- */
 export const HeroSection = memo(HeroSectionImpl);
