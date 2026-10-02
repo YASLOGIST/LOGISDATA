@@ -456,9 +456,8 @@ export function Presentation() {
            */
           performance={{ min: 0.6, max: 1, debounce: 220 }}
         >
-          <Suspense fallback={null}>
-            <AdaptiveDpr pixelated={false} />
-            <ScrollControls
+          <AdaptiveDpr pixelated={false} />
+          <ScrollControls
               pages={SECTION_COUNT}
               /*
                * `damping` is a smooth-time in seconds: drei eases its own
@@ -486,15 +485,16 @@ export function Presentation() {
                 overscrollBehaviorY: "contain",
               }}
             >
-              <ScrollBridge onReady={onScrollReady} trackRef={htmlTrackRef} />
+            <ScrollBridge onReady={onScrollReady} trackRef={htmlTrackRef} />
+            <Suspense fallback={null}>
               <IndustrialScene
                 language={language}
                 theme={theme}
                 device={device}
               />
-            </ScrollControls>
-            <Preload all />
-          </Suspense>
+            </Suspense>
+          </ScrollControls>
+          <Preload all />
         </Canvas>
       </div>
 
