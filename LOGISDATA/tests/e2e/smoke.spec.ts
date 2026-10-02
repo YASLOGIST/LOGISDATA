@@ -36,27 +36,9 @@ test.describe("control room entry", () => {
     await expect(page.getByRole("navigation", { name: /Presentation sections/i })).toBeVisible();
   });
 
-  /**
-   * Known, accepted third-party noise.
-   *
-   * drei's `Scroll html` renders the deck's markup into a *second* React
-   * root and bridges the R3F context into it. Under React 19 that bridged
-   * value can still be empty on the second root's first render, and the
-   * hooks inside it throw. React contains the error inside that root: the
-   * deck mounts and behaves correctly, which every other spec in this suite
-   * verifies. Deferring the subtree until the Canvas has committed (see
-   * Presentation.tsx) cut the occurrences roughly in half but cannot remove
-   * them -- the real fix is to stop using `Scroll html`, which is a rewrite
-   * of the scroll architecture. Tracked in docs/UPGRADE.md.
-   *
-   * Everything NOT matching this is still a hard failure.
-   */
-  const KNOWN_DREI_REACT19_NOISE = /R3F: Hooks can only be used within the Canvas component/;
-
   test("the deck and the briefing are reachable without application errors", async ({ page }) => {
     const errors: string[] = [];
     page.on("pageerror", (error) => {
-      if (KNOWN_DREI_REACT19_NOISE.test(error.message)) return;
       errors.push(`${error.message} | ${(error.stack ?? "").split("\n")[1]?.trim() ?? "no frame"}`);
     });
 

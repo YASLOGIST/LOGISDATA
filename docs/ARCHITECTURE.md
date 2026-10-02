@@ -112,6 +112,8 @@ Three consumers read the same mapping each frame:
 
 Programmatic jumps use the inverse, `scrollTopForSection`, which measures the element's real scroll range rather than assuming `pages * clientHeight` — drei appends its fill element alongside a sticky content wrapper, so the two differ and the naive form lands short of the section. Both functions live in `lib/sections.ts` and are unit-tested.
 
+The readable section markup intentionally does **not** use drei's `Scroll html`. That helper creates a second React root and could race React 19's R3F context. `DeckOverlay` renders in the main tree as a fixed, pointer-transparent track; `ScrollBridge` moves it with the same damped `scroll.offset` and viewport travel used by the scene. This preserves the single native scroll source without the second-root failure mode.
+
 `applyLabelFocus` is write-guarded on `node.dataset.focus` rather than on `style.opacity`, because the CSSOM re-serialises `"0.500"` to `"0.5"` and the naive comparison never matched — the original guard was a no-op on every frame. **CONFIRMED** by `tests/unit/sceneFocus.test.ts`.
 
 ### 2.2 Render loop policy

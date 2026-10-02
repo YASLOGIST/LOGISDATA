@@ -1,10 +1,10 @@
 "use client";
 
-import { Canvas } from "@react-three/fiber";
-import { AdaptiveDpr, Html, Preload, Scroll, ScrollControls, useScroll } from "@react-three/drei";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { AdaptiveDpr, Html, Preload, ScrollControls, useScroll } from "@react-three/drei";
 import { motion } from "framer-motion";
 import { ChevronDown, FileText, Keyboard, Languages, Moon, Sun } from "lucide-react";
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import { presentationCopy } from "@/lib/data";
 import { t, text } from "@/lib/i18n";
 import { DURATION, transition } from "@/lib/motion";
@@ -33,15 +33,27 @@ const EDITABLE = "input, textarea, select, [contenteditable='true']";
 
 interface ScrollBridgeProps {
   onReady: (element: HTMLDivElement) => void;
-  onCanvasReady: () => void;
+  trackRef: MutableRefObject<HTMLDivElement | null>;
 }
 
-function ScrollBridge({ onReady, onCanvasReady }: ScrollBridgeProps) {
+function ScrollBridge({ onReady, trackRef }: ScrollBridgeProps) {
   const scroll = useScroll();
+  const viewport = useThree((state) => state.size);
+
   useEffect(() => {
     onReady(scroll.el);
-    onCanvasReady();
-  }, [onReady, onCanvasReady, scroll.el]);
+  }, [onReady, scroll.el]);
+
+  // Keep the readable layer on the same damped timeline as the camera and
+  // the 3D labels. Using raw scrollTop here would make the prose jump ahead
+  // while ScrollControls was still easing the scene toward it.
+  useFrame(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    const travel = viewport.height * Math.max(0, scroll.pages - 1);
+    track.style.transform = `translate3d(0, -${scroll.offset * travel}px, 0)`;
+  });
+
   return null;
 }
 
@@ -57,6 +69,46 @@ function SceneLoader({ language }: { language: Language }) {
   );
 }
 
+interface DeckOverlayProps {
+  language: Language;
+  reduced: boolean;
+  activeSection: number;
+  trackRef: MutableRefObject<HTMLDivElement | null>;
+}
+
+/**
+ * Accessible content layer for the deck.
+ *
+ * This deliberately lives beside the canvas, not inside drei's `<Scroll
+ * html>` helper. That helper portals its children into a second React root;
+ * under React 19 the bridge can race the Canvas context and emit the fatal
+ * "Hooks can only be used within the Canvas component" error. The scene still
+ * uses ScrollControls for its normalized offset, while the in-canvas bridge
+ * moves this fixed overlay with the same damped offset in one composited
+ * transform. The result is one scroll source, two render layers, and no
+ * cross-root React ownership or context leakage.
+ */
+function DeckOverlay({ language, reduced, activeSection, trackRef }: DeckOverlayProps) {
+  return (
+    <div className="html-deck-frame">
+      <div ref={trackRef} className="html-deck-track">
+        <main
+          id="presentation-content"
+          className="presentation-scroll"
+          aria-label={t("presentationLandmark", language)}
+          tabIndex={-1}
+        >
+          <HeroSection language={language} active={activeSection === 0} reduced={reduced} />
+          <AuditSection language={language} active={activeSection === 1} reduced={reduced} />
+          <DemandSection language={language} active={activeSection === 2} reduced={reduced} />
+          <RoutesSection language={language} active={activeSection === 3} reduced={reduced} />
+          <WarehouseSection language={language} active={activeSection === 4} reduced={reduced} />
+        </main>
+      </div>
+    </div>
+  );
+}
+
 export function Presentation() {
   const { language, theme, rtl, device, toggleLanguage, toggleTheme } = usePreferences();
   const reduced = device.reducedMotion;
@@ -68,9 +120,8 @@ export function Presentation() {
   );
   const [pageVisible, setPageVisible] = useState(true);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [canvasReady, setCanvasReady] = useState(false);
-  const markCanvasReady = useCallback(() => setCanvasReady(true), []);
   const scrollElement = useRef<HTMLDivElement | null>(null);
+  const htmlTrackRef = useRef<HTMLDivElement | null>(null);
   const scrollListener = useRef<(() => void) | null>(null);
   const pendingSection = useRef<number | null>(
     sectionIndexFromHash(typeof window === "undefined" ? null : window.location.hash),
@@ -87,6 +138,10 @@ export function Presentation() {
    * exact and immediate, and the 3D scene is still free to ease toward it.
    */
   const onScrollReady = useCallback((element: HTMLDivElement) => {
+    // ScrollControls can recreate its element after a Canvas remount. Tear
+    // down the previous bridge before attaching a new one so duplicate scroll
+    // listeners never accumulate across retries.
+    scrollListener.current?.();
     scrollElement.current = element;
 
     /*
@@ -105,8 +160,18 @@ export function Presentation() {
       clientHeight = element.clientHeight;
     };
 
-    const sync = () =>
+    const sync = () => {
+      // This immediate write is also the pre-Canvas fallback for a deep link
+      // while the 3D chunk is still loading. Once ScrollBridge mounts, its
+      // useFrame callback replaces it with the damped position used by the
+      // camera, so normal scrolling remains visually synchronized.
+      const track = htmlTrackRef.current;
+      const range = Math.max(0, scrollHeight - clientHeight);
+      if (track && range > 0) {
+        track.style.transform = `translate3d(0, -${element.scrollTop}px, 0)`;
+      }
       setActiveSection(sectionFromScrollTop(element.scrollTop, scrollHeight, clientHeight));
+    };
 
     const observer =
       typeof ResizeObserver === "function"
@@ -168,6 +233,8 @@ export function Presentation() {
       cancelAnimationFrame(frame);
       observer?.disconnect();
       element.removeEventListener("scroll", sync);
+      if (htmlTrackRef.current) htmlTrackRef.current.style.transform = "translate3d(0, 0, 0)";
+      if (scrollElement.current === element) scrollElement.current = null;
     };
   }, []);
 
@@ -418,55 +485,37 @@ export function Presentation() {
               damping={reduced ? 0 : 0.12}
               /*
                * `scrollSnapType: y mandatory` + `scrollSnapStop: always`
-               * were removed. drei renders the deck's HTML into its
-               * `position: fixed` overlay, so the sections are not in this
-               * container's scrollable flow and were never valid snap
-               * targets -- the only in-flow child is drei's empty fill
-               * div. The declaration therefore snapped nothing while still
-               * making the compositor run snap-target resolution on each
-               * scroll update, and `overscroll-behavior` work on top.
+               * were removed. The readable deck now lives in a sibling
+               * fixed track, so the sections are not in this container's
+               * scrollable flow and were never valid snap targets -- the
+               * only in-flow child is drei's empty fill div. The declaration
+               * therefore snapped nothing while still making the compositor
+               * run snap-target resolution on each scroll update, and
+               * `overscroll-behavior` work on top.
                */
               style={{
                 scrollbarWidth: "none",
                 overscrollBehaviorY: "contain",
               }}
             >
-              <ScrollBridge onReady={onScrollReady} onCanvasReady={markCanvasReady} />
+              <ScrollBridge onReady={onScrollReady} trackRef={htmlTrackRef} />
               <IndustrialScene
                 language={language}
                 theme={theme}
                 device={device}
               />
-              {/*
-                drei's `Scroll html` renders our markup into a *second* React
-                root and bridges the R3F context into it. Mounting it in the
-                same commit as the Canvas means that bridged value can still
-                be empty when the second root first renders, and every R3F
-                hook inside it throws "Hooks can only be used within the
-                Canvas component". Waiting for the Canvas to commit gives the
-                bridge something real to carry.
-              */}
-              {canvasReady ? (
-              <Scroll html style={{ width: "100%" }}>
-                <main
-                  id="presentation-content"
-                  className="presentation-scroll"
-                  aria-label={t("presentationLandmark", language)}
-                  tabIndex={-1}
-                >
-                  <HeroSection language={language} active={activeSection === 0} reduced={reduced} />
-                  <AuditSection language={language} active={activeSection === 1} reduced={reduced} />
-                  <DemandSection language={language} active={activeSection === 2} reduced={reduced} />
-                  <RoutesSection language={language} active={activeSection === 3} reduced={reduced} />
-                  <WarehouseSection language={language} active={activeSection === 4} reduced={reduced} />
-                </main>
-              </Scroll>
-              ) : null}
             </ScrollControls>
             <Preload all />
           </Suspense>
         </Canvas>
       </div>
+
+      <DeckOverlay
+        language={language}
+        reduced={reduced}
+        activeSection={activeSection}
+        trackRef={htmlTrackRef}
+      />
 
       <nav className="presentation-progress" aria-label={t("progress", language)}>
         {SECTIONS.map((section) => (
