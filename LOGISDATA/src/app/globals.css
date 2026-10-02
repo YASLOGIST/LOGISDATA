@@ -111,7 +111,7 @@ button:focus-visible {
 }
 
 /*
- * The readable deck is portaled into this absolute host inside drei's real
+ * The readable deck is portaled into this in-flow host inside drei's real
  * scroll element. Native scrolling then moves the HTML and 3D layers from
  * the same source, without a second React root or a transform bridge that
  * can drift from the browser's viewport. The host itself is transparent to
@@ -119,10 +119,11 @@ button:focus-visible {
  * actual controls opt back into hit testing below.
  */
 .html-deck-host {
-  position: absolute;
-  inset: 0 0 auto;
+  position: relative;
   z-index: 10;
-  height: 500%;
+  flex: none;
+  width: 100%;
+  height: 500vh;
   pointer-events: none;
 }
 

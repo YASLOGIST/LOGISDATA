@@ -33,14 +33,14 @@ const PREV_KEYS = new Set(["ArrowUp", "ArrowLeft", "PageUp"]);
 const EDITABLE = "input, textarea, select, [contenteditable='true']";
 
 interface ScrollBridgeProps {
-  onReady: (element: HTMLDivElement) => void;
+  onReady: (element: HTMLDivElement, fill: HTMLDivElement, fixed: HTMLDivElement) => void;
 }
 
 function ScrollBridge({ onReady }: ScrollBridgeProps) {
   const scroll = useScroll();
   useEffect(() => {
-    onReady(scroll.el);
-  }, [onReady, scroll.el]);
+    onReady(scroll.el, scroll.fill, scroll.fixed);
+  }, [onReady, scroll.el, scroll.fill, scroll.fixed]);
   return null;
 }
 
@@ -108,7 +108,7 @@ export function Presentation() {
    * stop, and the announced state froze mid-travel. Reading the DOM makes it
    * exact and immediate, and the 3D scene is still free to ease toward it.
    */
-  const onScrollReady = useCallback((element: HTMLDivElement) => {
+  const onScrollReady = useCallback((element: HTMLDivElement, fill: HTMLDivElement, fixed: HTMLDivElement) => {
     // ScrollControls can recreate its element after a Canvas remount. Tear
     // down the previous bridge before attaching a new one so duplicate scroll
     // listeners never accumulate across retries.
@@ -123,6 +123,15 @@ export function Presentation() {
     element.appendChild(host);
     scrollHostRef.current = host;
     setScrollHost(host);
+
+    // ScrollControls' empty fill and sticky portal target are normally the
+    // scroll geometry. The same-root host is now the real in-flow deck, so
+    // remove both placeholders after drei's mount effect has configured them;
+    // the host's 500vh height then yields one exact four-viewport range.
+    const fillFrame = requestAnimationFrame(() => {
+      fill.style.height = "0px";
+      fixed.style.display = "none";
+    });
 
     /*
      * PERF: `scrollHeight` and `clientHeight` are layout-dependent reads.
@@ -203,6 +212,7 @@ export function Presentation() {
 
     scrollListener.current = () => {
       cancelAnimationFrame(frame);
+      cancelAnimationFrame(fillFrame);
       observer?.disconnect();
       element.removeEventListener("scroll", sync);
       if (scrollHostRef.current === host) {
