@@ -6,7 +6,6 @@ import { AlertTriangle, Check, FileCheck2, Filter, ScanLine, Search } from "luci
 import { presentationCopy } from "@/lib/data";
 import { getScenarioFreightRows } from "@/lib/simulation";
 import { integer, number, text, t } from "@/lib/i18n";
-import { auditSummary } from "@/lib/metrics";
 import { DURATION, STAGGER, staggerDelay, transition } from "@/lib/motion";
 import { SECTIONS } from "@/lib/sections";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -32,7 +31,10 @@ function AuditSectionImpl({ language, active, reduced, scenario = "active-audit"
     });
   }, [scenario, language, searchQuery, verdictFilter]);
 
-  const flaggedCount = rows.filter((r) => r.verdict === "red-flag").length;
+  const flaggedCount = rows.filter((row) => row.verdict === "red-flag").length;
+  const totalOverchargePct = rows
+    .filter((row) => row.verdict === "red-flag")
+    .reduce((sum, row) => sum + row.overchargePct, 0);
 
   return (
     <section
@@ -64,7 +66,7 @@ function AuditSectionImpl({ language, active, reduced, scenario = "active-audit"
                 {integer(flaggedCount, language)} / {integer(rows.length, language)}
               </p>
               <p className="summary-label">
-                {text(copy.redFlag, language)} · {number(auditSummary.totalOverchargePct, language, 1)}%{" "}
+                {text(copy.redFlag, language)} · {number(totalOverchargePct, language, 1)}%{" "}
                 {text(copy.tableHeaders.overcharge, language)}
               </p>
             </div>
@@ -115,7 +117,7 @@ function AuditSectionImpl({ language, active, reduced, scenario = "active-audit"
             </div>
 
             <div className="toolbar-actions">
-              <DatasetExport dataset="freight-audit" language={language} />
+              <DatasetExport dataset="freight-audit" language={language} scenario={scenario} />
             </div>
           </div>
 
@@ -133,7 +135,13 @@ function AuditSectionImpl({ language, active, reduced, scenario = "active-audit"
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row, index) => {
+                {rows.length === 0 ? (
+                  <tr>
+                    <td className="table-empty-state" colSpan={6}>
+                      {t("noRecords", language)}
+                    </td>
+                  </tr>
+                ) : rows.map((row, index) => {
                   const isFlagged = row.verdict === "red-flag";
                   return (
                     <motion.tr

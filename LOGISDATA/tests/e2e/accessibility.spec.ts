@@ -1,11 +1,17 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 const WCAG = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
+async function enterControlRoom(page: Page) {
+  await page.goto("/");
+  await expect(page.locator("canvas")).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator(".presentation-root")).toHaveAttribute("data-interactive", "true");
+}
+
 test.describe("accessibility", () => {
   test("the control room entry has no WCAG 2.1 AA violations", async ({ page }) => {
-    await page.goto("/");
+    await enterControlRoom(page);
     const results = await new AxeBuilder({ page }).withTags(WCAG).analyze();
     expect(results.violations).toEqual([]);
   });
@@ -22,8 +28,7 @@ test.describe("accessibility", () => {
   });
 
   test("the control room has no WCAG 2.1 AA violations outside the canvas", async ({ page }) => {
-    await page.goto("/");
-    await expect(page.locator("canvas")).toBeVisible({ timeout: 30_000 });
+    await enterControlRoom(page);
     const results = await new AxeBuilder({ page })
       .withTags(WCAG)
       // The WebGL canvas itself cannot be audited; its content is mirrored
@@ -56,15 +61,13 @@ test.describe("accessibility", () => {
 
   test("reduced-motion visitors still get a complete, static deck", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/");
-    await expect(page.locator("canvas")).toBeVisible({ timeout: 30_000 });
+    await enterControlRoom(page);
     // Metric counters must be at their final value immediately, not at 0.
     await expect(page.locator(".metric-counter-value").first()).not.toHaveText(/^\$?0(\.0)?/);
   });
 
   test("the active section is announced to assistive technology", async ({ page }) => {
-    await page.goto("/");
-    await expect(page.locator("canvas")).toBeVisible({ timeout: 30_000 });
+    await enterControlRoom(page);
     const status = page.locator("[role='status'][aria-live='polite']").first();
     await expect(status).toContainText("Hidden cost");
     await page.keyboard.press("End");

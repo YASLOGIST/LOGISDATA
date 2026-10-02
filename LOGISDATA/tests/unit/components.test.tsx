@@ -11,12 +11,21 @@ import { resetPreferenceStore } from "@/lib/preferenceStore";
 import { auditMetrics } from "@/lib/data";
 
 vi.mock("next/image", () => ({
-  default: ({ alt, ...props }: { alt: string }) => <img alt={alt} {...props} />,
+  default: ({ alt, priority: _priority, ...props }: { alt: string; priority?: boolean }) => (
+    <img alt={alt} {...props} />
+  ),
 }));
 vi.mock("next/link", () => ({
-  default: ({ href, children, ...props }: { href: string; children: React.ReactNode }) => (
-    <a href={href} {...props}>{children}</a>
-  ),
+  default: ({
+    href,
+    children,
+    prefetch: _prefetch,
+    ...props
+  }: {
+    href: string;
+    children: React.ReactNode;
+    prefetch?: boolean;
+  }) => <a href={href} {...props}>{children}</a>,
 }));
 
 beforeEach(() => {

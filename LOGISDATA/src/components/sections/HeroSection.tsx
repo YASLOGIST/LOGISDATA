@@ -6,7 +6,7 @@ import Image from "next/image";
 import { ArrowDown, Network, ShieldCheck } from "lucide-react";
 import { presentationCopy, supplyNodes } from "@/lib/data";
 import { getScenarioMetrics } from "@/lib/simulation";
-import { text } from "@/lib/i18n";
+import { t, text } from "@/lib/i18n";
 import { sound } from "@/lib/sound";
 import { DURATION, transition } from "@/lib/motion";
 import { SECTIONS } from "@/lib/sections";
@@ -95,7 +95,7 @@ function HeroSectionImpl({ language, active, reduced, scenario = "active-audit",
           </GlassCard>
 
           {/* Interactive Supply Nodes Quick Telemetry Bar */}
-          <div className="hero-nodes-bar" role="toolbar" aria-label="Supply chain node selector">
+          <div className="hero-nodes-bar" role="group" aria-label={t("nodeSelector", language)}>
             {supplyNodes.map((node) => {
               const isLeak = node.status === "leak";
               const isPhantom = node.status === "phantom";
@@ -106,7 +106,9 @@ function HeroSectionImpl({ language, active, reduced, scenario = "active-audit",
                   type="button"
                   className="hero-node-chip"
                   onClick={() => handleNodeClick(node.id)}
-                  title={`Inspect ${text(node.label, language)}`}
+                  aria-haspopup="dialog"
+                  aria-label={`${t("inspectNode", language)} ${text(node.label, language)}`}
+                  title={`${t("inspectNode", language)} ${text(node.label, language)}`}
                 >
                   <span className={`node-dot ${dotClass}`} aria-hidden="true" />
                   <span>{text(node.label, language)}</span>

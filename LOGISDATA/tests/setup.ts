@@ -7,7 +7,14 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-// jsdom implements neither of these; several components feature-detect them.
+// jsdom implements none of these browser capabilities. Provide quiet,
+// deterministic feature probes; individual tests can still spy on them.
+Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
+  configurable: true,
+  writable: true,
+  value: vi.fn(() => null),
+});
+
 if (!("matchMedia" in window)) {
   Object.defineProperty(window, "matchMedia", {
     writable: true,

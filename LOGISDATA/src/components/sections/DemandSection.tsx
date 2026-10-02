@@ -79,7 +79,7 @@ function DemandSectionImpl({ language, active, reduced, scenario = "active-audit
                   <i className="legend-dot legend-audited" aria-hidden="true" />
                   {text(copy.chartAudited, language)}
                 </span>
-                <DatasetExport dataset="demand-signal" language={language} />
+                <DatasetExport dataset="demand-signal" language={language} scenario={scenario} />
               </div>
             </div>
 

@@ -24,10 +24,11 @@ export function AudioToggle({ language }: AudioToggleProps) {
       className={`control-button audio-toggle-btn ${enabled ? "audio-on" : ""}`}
       onClick={handleToggle}
       aria-label={enabled ? t("soundOn", language) : t("soundOff", language)}
+      title={enabled ? t("soundOn", language) : t("soundOff", language)}
       aria-pressed={enabled}
     >
       {enabled ? <Volume2 size={15} aria-hidden="true" /> : <VolumeX size={15} aria-hidden="true" />}
-      <span>{enabled ? "SFX" : "MUTE"}</span>
+      <span>{t(enabled ? "soundShortOn" : "soundShortOff", language)}</span>
     </button>
   );
 }

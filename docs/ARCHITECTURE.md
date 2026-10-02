@@ -16,17 +16,17 @@ This document is written to be **sufficient to rebuild the application from scra
 | Framework | Next.js 16.3.7, App Router, Turbopack |
 | UI runtime | React 19.2.6 |
 | 3D | three ^0.185 · @react-three/fiber ^9.7 · @react-three/drei ^10.7 |
-| Animation | framer-motion ^12.43 (deck only — **not** the cover) |
+| Animation | framer-motion ^12.43 (deferred control-room bundle; the cover is archived and not shipped) |
 | Styling | Tailwind CSS 4.1 (CSS-first `@theme`) + a hand-written design layer in `globals.css` |
 | Data layer | drizzle-orm + `pg`, lazily instantiated and entirely optional |
 | Language | TypeScript 5.9, `strict` |
 | Runtime floor | Node.js 22 (`engines`, `.nvmrc`) |
-| Source size | ~4,300 lines under `src/`, ~1,700 lines under `tests/` |
+| Source size | 53 TypeScript/TSX modules / 7,059 lines under `src/`, plus 3,156 CSS lines; 22 TypeScript/TSX test modules / 2,353 lines (measured 2026-10-02) |
 
 **Definition of success** (the measurable contract this build is held to):
 
 1. A visitor on any device gets the full audit content — WebGL or not, motion or not, English or Arabic.
-2. The cover screen never pays for the 3D runtime.
+2. The static shell and no-WebGL fallback never request the deferred 3D runtime.
 3. Scene state and document state are provably the same state (locked by tests, not by eyeballing).
 4. Every quality property — types, lint, unit, e2e, accessibility, payload, dependency security — is machine-enforced in CI.
 
@@ -67,7 +67,7 @@ This document is written to be **sufficient to rebuild the application from scra
 └─────────────────────────┘                            └──────────────────────────┘
 ```
 
-**CONFIRMED.** `Presentation.tsx` is the sole importer of `three`, `@react-three/fiber`, `@react-three/drei` and `framer-motion` on the `/` route, and it is loaded through `next/dynamic` with `ssr: false`.
+**CONFIRMED.** `Presentation.tsx` is the deferred root for the module graph that imports Three.js, React Three Fiber, drei, and Framer Motion on `/`; `PresentationShell` loads that root through `next/dynamic` with `ssr: false`.
 
 There is **no cover screen**: the deck opens directly in the control room. The shell still holds the loader until the capability probe has run, so a device without WebGL is shown the text fallback without ever requesting the 1 MB 3D chunk. `tests/e2e/smoke.spec.ts` asserts that the server-rendered document stays a small static shell (< 40 kB, no `WebGLRenderer`), and `tests/e2e/performance.spec.ts` enforces the total JavaScript ceiling for the route.
 
@@ -90,12 +90,13 @@ export function pagePositionFromOffset(offset: number): number {
 ```ts
 // lib/sceneFocus.ts
 export const FOCUS_SPREAD = 1.08;
-export function getSectionFocus(pagePosition: number, index: number): number {
-  const distance = Math.abs(pagePosition - index);
-  return Math.max(0, 1 - distance / FOCUS_SPREAD);  // 1 at the section, 0 away
+export function getSectionFocus(scrollOffset: number, index: number): number {
+  const pagePosition = pagePositionFromOffset(scrollOffset);
+  const distance = Math.abs(pagePosition - clampSectionIndex(index));
+  return clamp01(1 - distance / FOCUS_SPREAD);  // 1 at the section, 0 away
 }
-export function getActiveSectionIndex(pagePosition: number): number {
-  return clampSectionIndex(Math.round(pagePosition));
+export function getActiveSectionIndex(scrollOffset: number): number {
+  return clampSectionIndex(Math.round(pagePositionFromOffset(scrollOffset)));
 }
 ```
 
@@ -161,14 +162,14 @@ This replaced three `useEffect`-into-`setState` patterns that the React 19 `reac
 
 ### 2.5 Data and derived metrics
 
-**CONFIRMED.** `lib/data.ts` holds typed bilingual literals (`{ en, ar }` for every string). `lib/metrics.ts` derives every headline number **once at module scope**, so no component recomputes a sum during render:
+**CONFIRMED.** `lib/data.ts` holds typed bilingual literals (`{ en, ar }` for every string). `lib/metrics.ts` computes the default summaries once at module scope and exports pure selectors for scenario-derived rows; components memoize scenario/filter calculations rather than recomputing them per animation frame:
 
 | Selector | Value in the shipped dataset |
 |---|---|
 | `auditSummary` | 5 rows, 3 flagged (60%), 4,032 km billed vs 3,898 actual, 134 km unverified |
 | `demandSummary` | peak amplification 3.45×, post-audit 1.45×, 81.6% distortion removed |
 | `routeSummary` | total optimised savings $1,822,000; worst region Gulf distribution (14.2% mileage waste) |
-| `warehouseSummary` | 4 zones audited, accuracy and mismatch counts derived from the zone rows |
+| `warehouseSummary` | 42 bins, 12 mismatches, 30 audited (71.43% accuracy), all derived from the bin rows |
 
 `selectors.summariseAudit` / `summariseDemand` **throw** on an empty input rather than returning `NaN` or `0` — a silent zero in an audit deck is worse than a crash. **CONFIRMED** by `tests/unit/metrics.test.ts`.
 
@@ -202,7 +203,7 @@ All verified against a running production server.
 
 ## 4. Interaction specification
 
-**CONFIRMED** (`tests/e2e/navigation.spec.ts`):
+**CONFIRMED by source and unit behavior; browser flows are encoded in `tests/e2e/navigation.spec.ts`:**
 
 | Input | Result |
 |---|---|
@@ -216,22 +217,26 @@ All verified against a running production server.
 | `?` | Open the shortcut dialog (native `<dialog>`) |
 | `Esc` | Close the dialog |
 
-Shortcuts are ignored while focus is inside an input or a `contenteditable` region.
+Global section/theme/language/help shortcuts are ignored when an event is already handled, uses Alt/Ctrl/Meta, belongs to IME composition, originates inside any interactive control, or a native modal dialog is open. This prevents Space from becoming “next section” when it should activate a focused button and prevents section travel behind a modal. Scenario radios implement the WAI keyboard model: one tab stop, arrows with wraparound, and Home/End.
 
 Deep linking is bidirectional: the hash seeds the initial scroll offset on load, and scrolling rewrites the hash with `history.replaceState` (no history spam).
 
+The keyboard-help sheet, recovery calculator, and node inspector use native `<dialog>` modality through `useNativeDialog`. Opening moves focus to the labelled close control; platform close/Escape calls the controlled-state callback; unmount restores focus to the invoker. The telemetry drawer is not modal and remains mounted to preserve its filter state, but starts no interval and emits no audio while closed.
+
 ### Export
 
-`lib/export.ts` emits RFC 4180 CSV (CRLF rows, quotes doubled, fields containing `"`/`,`/newline quoted) for four datasets — `freight-audit`, `demand-signal`, `route-intelligence`, `warehouse-control` — named `logisdata-<dataset>-<lang>-<YYYY-MM-DD>.csv`. Each `DatasetExport` button carries `data-dataset="<id>"` as a stable e2e hook.
+`lib/export.ts` emits RFC 4180 CSV (CRLF rows, quotes doubled, fields containing `"`/`,`/newline quoted) for four datasets—`freight-audit`, `demand-signal`, `route-intelligence`, `warehouse-control`. Rows derive from the active scenario. Active-audit filenames retain the backward-compatible `logisdata-<dataset>-<lang>-<YYYY-MM-DD>.csv` form; baseline and mitigated exports include the scenario before the language. The executive JSON report includes export time, language, scenario, `illustrative-simulation` classification, bilingual disclosure, scenario-derived summaries, and the rows for all five theatres. Each `DatasetExport` button carries `data-dataset="<id>"` as a stable e2e hook.
 
 ## 5. Accessibility specification
 
-**CONFIRMED** (`tests/e2e/accessibility.spec.ts` runs axe-core against WCAG 2.1 A + AA on the cover, the handout in both languages, and the control room):
+**MEASURED in browser-equipped CI.** `tests/e2e/accessibility.spec.ts` runs axe-core against WCAG 2.1 A + AA on the entry shell, the handout in both languages, and the control room. On 2026-10-02, all 60 configured Playwright checks passed across desktop Chromium, reduced-motion, and mobile projects, including functional, accessibility, download, layout-shift, and frame-budget checks.
 
 - Skip link (`#presentation-content` on `/`, `#handout-main` on `/handout`) as the first focusable element; the target carries `tabIndex={-1}` so focus actually lands there.
 - Each section is `<section id="section-<slug>" aria-labelledby="<slug>-title">`; Hero's heading is the page `h1`, the rest are `h2`.
 - A `role="status"` live region announces the active section on change.
-- The nav exposes `role="progressbar"` with a correct `aria-valuenow`.
+- The nav exposes `role="progressbar"` with a correct `aria-valuenow`; sortable route headers expose `aria-sort`, and empty audit filters produce a localized table row.
+- Scenario selection uses a roving radio group with arrow/Home/End behavior; telemetry filters expose pressed state and localized labels, while running/paused simulation state is announced truthfully.
+- Calculator, inspector, and keyboard-help overlays are native modal dialogs with deterministic initial focus and invoker-focus restoration.
 - The canvas is `aria-hidden`; every number it visualises also exists as text or a table.
 - 3D labels below 5% focus get `visibility: hidden` and `aria-hidden="true"`, so screen readers never read four invisible scenes at once.
 - Reduced motion resolves counters to their final value immediately — the information is never gated behind an animation.
@@ -264,13 +269,14 @@ Cross-Origin-Resource-Policy: same-origin
 ```text
 npm run typecheck ──▶ tsc --noEmit (strict, includes tests)
 npm run lint      ──▶ eslint (next/core-web-vitals, react-hooks)
-npm run test      ──▶ vitest · 11 files · 161 tests · jsdom
-                      └ coverage thresholds: 85% lines, 80% stmt/fn/branch
-npm run test:e2e  ──▶ playwright · 3 projects
+npm run test      ──▶ vitest · 16 files · 213 tests · jsdom
+npm run test:coverage
+                   └▶ floors: 85% lines, 80% statements/functions/branches
+npm run test:e2e  ──▶ playwright · 60 checks · 3 projects
                       ├ desktop-chromium : all specs
                       ├ reduced-motion   : accessibility + handout
                       └ mobile (Pixel 7) : handout + smoke
-npm run budget    ──▶ gzip-measured cover payload vs a hard ceiling
+npm run budget    ──▶ gzip-measured initial shell vs 205,000 B hard ceiling
 npm audit         ──▶ fails on high/critical
 ```
 
@@ -279,6 +285,6 @@ npm audit         ──▶ fails on high/critical
 ## 8. Known limitations
 
 1. **CONFIRMED.** `script-src 'unsafe-inline'` remains, for the reason in §6.
-2. **CONFIRMED.** three.js is ~1.0 MB raw / ~250 KB gzipped. It is fully deferred behind the entry gate, but visitors who enter the control room do pay it. Lighter alternatives were rejected: they would change the deliverable.
+2. **CONFIRMED.** Three.js is a large deferred dependency. It sits behind the dynamic import and WebGL capability gate, but capable clients load it automatically because there is no cover-screen CTA. Lighter alternatives were rejected because they would change the deliverable.
 3. **CONFIRMED.** The figures are illustrative, not measured. See the data policy in the README.
 4. **INFERRED — PROBABLE.** The Arabic translations are presentation-grade but have not been reviewed by a domain-expert native speaker; terminology in the freight-audit table is the most likely place for a correction.

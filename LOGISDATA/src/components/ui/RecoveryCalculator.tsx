@@ -5,6 +5,7 @@ import { Calculator, DollarSign, Sparkles, TrendingUp, X } from "lucide-react";
 import { calculateRecovery, DEFAULT_RECOVERY_PARAMS } from "@/lib/simulation";
 import { currency, integer, number, t } from "@/lib/i18n";
 import { sound } from "@/lib/sound";
+import { useNativeDialog } from "@/lib/useNativeDialog";
 import type { Language, RecoveryParameters } from "@/lib/types";
 
 interface RecoveryCalculatorProps {
@@ -16,6 +17,7 @@ interface RecoveryCalculatorProps {
 export function RecoveryCalculator({ open, onClose, language }: RecoveryCalculatorProps) {
   const [params, setParams] = useState<RecoveryParameters>(DEFAULT_RECOVERY_PARAMS);
   const titleId = useId();
+  const { dialogRef, closeDialog, handleDialogClose } = useNativeDialog(open, onClose);
 
   const results = useMemo(() => calculateRecovery(params), [params]);
 
@@ -27,7 +29,12 @@ export function RecoveryCalculator({ open, onClose, language }: RecoveryCalculat
   if (!open) return null;
 
   return (
-    <div className="calculator-overlay" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+    <dialog
+      ref={dialogRef}
+      className="calculator-overlay"
+      onClose={handleDialogClose}
+      aria-labelledby={titleId}
+    >
       <div className="calculator-modal">
         <div className="calculator-head">
           <div className="calculator-title-group">
@@ -37,14 +44,16 @@ export function RecoveryCalculator({ open, onClose, language }: RecoveryCalculat
           <button
             type="button"
             className="control-button"
-            onClick={onClose}
+            onClick={closeDialog}
             aria-label={t("closeDialog", language)}
+            data-dialog-initial-focus
           >
             <X size={15} aria-hidden="true" />
           </button>
         </div>
 
         <div className="calculator-body">
+          <p className="calculator-disclosure">{t("calculatorDisclosure", language)}</p>
           <div className="calculator-inputs">
             <div className="input-group">
               <div className="input-header">
@@ -140,6 +149,6 @@ export function RecoveryCalculator({ open, onClose, language }: RecoveryCalculat
           </div>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

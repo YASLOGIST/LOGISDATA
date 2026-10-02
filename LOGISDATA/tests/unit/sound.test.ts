@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { sound } from "@/lib/sound";
 
 describe("sound synthesizer engine", () => {
@@ -33,5 +33,14 @@ describe("sound synthesizer engine", () => {
     expect(() => sound.playAuditScan()).not.toThrow();
     expect(() => sound.playAlert()).not.toThrow();
     expect(() => sound.playSuccess()).not.toThrow();
+  });
+
+  it("does not allocate success-sequence timers while muted", () => {
+    vi.useFakeTimers();
+    const timeout = vi.spyOn(globalThis, "setTimeout");
+    sound.setEnabled(false);
+    sound.playSuccess();
+    expect(timeout).not.toHaveBeenCalled();
+    vi.useRealTimers();
   });
 });

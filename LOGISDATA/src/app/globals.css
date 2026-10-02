@@ -871,6 +871,12 @@ button:focus-visible {
 .verdict-red { color: var(--red); background: rgba(251, 91, 91, 0.06); }
 .verdict-green { color: var(--emerald); background: rgba(77, 225, 193, 0.06); }
 
+.table-empty-state {
+  padding: 28px 16px !important;
+  color: var(--text-muted);
+  text-align: center;
+}
+
 .table-footnote {
   padding: 11px 17px;
   border-top: 1px solid var(--line);
@@ -1395,9 +1401,20 @@ button:focus-visible {
   unicode-bidi: isolate;
 }
 
-@media (max-width: 1180px) {
-  .brand-lockup,
-  .navigation-actions { min-width: 160px; }
+@media (max-width: 2100px) {
+  .navigation-actions { min-width: auto; }
+  .navigation-actions .control-button {
+    flex: 0 0 32px;
+    justify-content: center;
+    width: 32px;
+    padding: 0;
+  }
+  .navigation-actions .control-button > span { display: none; }
+}
+
+@media (max-width: 1700px) {
+  .top-navigation { padding-right: 20px; padding-left: 20px; }
+  .brand-lockup { min-width: 160px; }
   .section-nav { gap: 7px; }
   .section-nav-button { font-size: 0.55rem; }
   .section-nav-button span:last-child { display: none; }
@@ -1425,6 +1442,13 @@ button:focus-visible {
 }
 
 @media (max-width: 600px) {
+  .brand-text { display: none; }
+  .navigation-actions { gap: 3px; }
+  .navigation-actions .control-button {
+    flex-basis: 30px;
+    width: 30px;
+    min-height: 30px;
+  }
   .presentation-section { min-height: 690px; }
   .section-inner { padding: 91px 38px 30px 16px; }
   [dir="rtl"] .section-inner { padding-right: 16px; padding-left: 38px; }
@@ -2570,6 +2594,15 @@ html[data-theme="light"] {
   font-size: 0.68rem;
 }
 
+.telemetry-disclosure {
+  margin: 0;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  line-height: 1.5;
+}
+
 .telemetry-filters {
   display: flex;
   align-items: center;
@@ -2685,15 +2718,31 @@ html[data-theme="light"] {
 .inspector-overlay {
   position: fixed;
   inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  border: 0;
   background: rgba(4, 12, 20, 0.75);
+  color: inherit;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
-  z-index: 100;
   padding: 18px;
   animation: overlay-fade 200ms ease both;
+}
+
+.calculator-overlay[open],
+.inspector-overlay[open] {
+  display: flex;
+}
+
+.calculator-overlay::backdrop,
+.inspector-overlay::backdrop {
+  background: transparent;
 }
 
 @keyframes overlay-fade {
@@ -2759,6 +2808,16 @@ html[data-theme="light"] {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.calculator-disclosure {
+  margin: 0;
+  padding: 10px 12px;
+  border-inline-start: 2px solid var(--amber);
+  background: var(--surface-soft);
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  line-height: 1.6;
 }
 
 .calculator-inputs {

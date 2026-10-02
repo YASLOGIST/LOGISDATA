@@ -21,6 +21,7 @@ import type { WebGLRenderer } from "three";
 import { presentationCopy } from "@/lib/data";
 import { downloadExecutiveReportJson } from "@/lib/export";
 import { t, text } from "@/lib/i18n";
+import { shouldIgnorePresentationShortcut } from "@/lib/keyboard";
 import { DURATION, transition } from "@/lib/motion";
 import { sound } from "@/lib/sound";
 import {
@@ -49,7 +50,6 @@ import { ScenarioSwitcher } from "@/components/ui/ScenarioSwitcher";
 
 const NEXT_KEYS = new Set(["ArrowDown", "ArrowRight", "PageDown", " ", "Spacebar"]);
 const PREV_KEYS = new Set(["ArrowUp", "ArrowLeft", "PageUp"]);
-const EDITABLE = "input, textarea, select, [contenteditable='true']";
 
 interface ScrollBridgeProps {
   onReady: (element: HTMLDivElement, fill: HTMLDivElement, fixed: HTMLDivElement) => void;
@@ -145,6 +145,10 @@ export function Presentation() {
   const [canvasGeneration, setCanvasGeneration] = useState(0);
   const [scrollHost, setScrollHost] = useState<HTMLElement | null>(null);
   const contextCleanupRef = useRef<(() => void) | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const activeSectionRef = useRef(activeSection);
+  const toggleLanguageRef = useRef(toggleLanguage);
+  const toggleThemeRef = useRef(toggleTheme);
 
   const scrollElement = useRef<HTMLDivElement | null>(null);
   const scrollHostRef = useRef<HTMLElement | null>(null);
@@ -179,16 +183,23 @@ export function Presentation() {
       };
 
       const sync = () => {
+        // Content can expand without resizing the scroll viewport, so refresh
+        // scrollHeight on every native scroll rather than trusting an earlier
+        // ResizeObserver snapshot.
+        measure();
         const metrics = scrollMetricsRef.current;
-        setActiveSection(
-          sectionFromScrollTop(element.scrollTop, metrics.scrollHeight, metrics.clientHeight),
+        const nextSection = sectionFromScrollTop(
+          element.scrollTop,
+          metrics.scrollHeight,
+          metrics.clientHeight,
         );
+        activeSectionRef.current = nextSection;
+        setActiveSection(nextSection);
       };
 
       const observer =
         typeof ResizeObserver === "function"
           ? new ResizeObserver(() => {
-              measure();
               sync();
             })
           : null;
@@ -240,19 +251,31 @@ export function Presentation() {
   const goToSection = useCallback((targetIndex: number) => {
     sound.playClick();
     const index = clampSectionIndex(targetIndex);
-    const element = scrollElement.current;
-    if (!element) {
-      pendingSection.current = index;
-      return;
-    }
-    const metrics = scrollMetricsRef.current;
-    const targetTop = scrollTopForSection(index, metrics.scrollHeight, metrics.clientHeight);
-    element.scrollTo({ top: targetTop, behavior: "smooth" });
     const targetHash = hashFromSectionIndex(index);
     if (window.location.hash !== targetHash) {
       window.history.replaceState(null, "", targetHash);
     }
+
+    const element = scrollElement.current;
+    if (!element) {
+      // Preserve the operator's intent during the short WebGL/scroll bridge
+      // startup window; onScrollReady consumes this destination.
+      pendingSection.current = index;
+      return;
+    }
+    const metrics = {
+      scrollHeight: element.scrollHeight,
+      clientHeight: element.clientHeight,
+    };
+    scrollMetricsRef.current = metrics;
+    const targetTop = scrollTopForSection(index, metrics.scrollHeight, metrics.clientHeight);
+    element.scrollTo({ top: targetTop, behavior: "smooth" });
   }, []);
+
+  useEffect(() => {
+    toggleLanguageRef.current = toggleLanguage;
+    toggleThemeRef.current = toggleTheme;
+  }, [toggleLanguage, toggleTheme]);
 
   useEffect(() => {
     const onHashChange = () => {
@@ -268,9 +291,11 @@ export function Presentation() {
       setPageVisible(document.visibilityState === "visible");
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      const active = document.activeElement;
-      if (active && active.matches(EDITABLE)) return;
-      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      if (shouldIgnorePresentationShortcut(
+        event,
+        document.activeElement,
+        Boolean(document.querySelector("dialog[open]")),
+      )) return;
 
       if (event.key === "?" || (event.key === "/" && event.shiftKey)) {
         event.preventDefault();
@@ -279,20 +304,25 @@ export function Presentation() {
       }
       if (event.key.toLowerCase() === "t") {
         event.preventDefault();
-        toggleTheme();
+        toggleThemeRef.current();
         return;
       }
       if (event.key.toLowerCase() === "l") {
         event.preventDefault();
-        toggleLanguage();
+        toggleLanguageRef.current();
         return;
       }
 
       let destination: number | null = null;
       const element = scrollElement.current;
-      const from = element
+      // The hash records the latest requested destination synchronously,
+      // while smooth scrolling may still be moving through intermediate
+      // offsets. Prefer that intent so rapid repeated arrows advance once per
+      // press instead of requesting the same section again.
+      const requestedSection = sectionIndexFromHash(window.location.hash);
+      const from = requestedSection ?? (element
         ? sectionFromScrollTop(element.scrollTop, element.scrollHeight, element.clientHeight)
-        : (pendingSection.current ?? activeSection);
+        : (pendingSection.current ?? activeSectionRef.current));
 
       if (NEXT_KEYS.has(event.key)) destination = from + 1;
       else if (PREV_KEYS.has(event.key)) destination = from - 1;
@@ -309,13 +339,16 @@ export function Presentation() {
       }
     };
 
+    const root = rootRef.current;
     document.addEventListener("visibilitychange", onVisibilityChange);
     window.addEventListener("keydown", onKeyDown);
+    root?.setAttribute("data-interactive", "true");
     return () => {
+      root?.removeAttribute("data-interactive");
       document.removeEventListener("visibilitychange", onVisibilityChange);
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [activeSection, goToSection, toggleLanguage, toggleTheme]);
+  }, [goToSection]);
 
   const frameloop = !pageVisible ? "never" : reduced ? "demand" : "always";
   const progress = SECTION_COUNT > 1 ? activeSection / (SECTION_COUNT - 1) : 1;
@@ -355,6 +388,7 @@ export function Presentation() {
 
   return (
     <motion.div
+      ref={rootRef}
       className="presentation-root"
       data-theme={theme}
       data-tier={device.tier}
@@ -413,6 +447,9 @@ export function Presentation() {
             className={`control-button ${telemetryOpen ? "btn-active-glow" : ""}`}
             onClick={() => setTelemetryOpen((v) => !v)}
             aria-label={t("telemetryToggle", language)}
+            title={t("telemetryToggle", language)}
+            aria-controls="telemetry-panel"
+            aria-expanded={telemetryOpen}
           >
             <Activity size={15} aria-hidden="true" />
             <span>{t("telemetryToggle", language)}</span>
@@ -424,6 +461,8 @@ export function Presentation() {
             className="control-button"
             onClick={() => setCalculatorOpen(true)}
             aria-label={t("calculatorOpen", language)}
+            title={t("calculatorOpen", language)}
+            aria-haspopup="dialog"
           >
             <Calculator size={15} aria-hidden="true" />
             <span>{t("calculatorOpen", language)}</span>
@@ -433,7 +472,7 @@ export function Presentation() {
           <button
             type="button"
             className="control-button"
-            onClick={() => downloadExecutiveReportJson(language)}
+            onClick={() => downloadExecutiveReportJson(language, scenario)}
             aria-label={t("exportJson", language)}
             title={t("exportJson", language)}
           >
@@ -445,7 +484,12 @@ export function Presentation() {
           <AudioToggle language={language} />
 
           {/* Handout View Link */}
-          <a className="control-button" href="/handout">
+          <a
+            className="control-button"
+            href="/handout"
+            aria-label={t("openHandout", language)}
+            title={t("openHandout", language)}
+          >
             <FileText size={15} aria-hidden="true" />
             <span>{t("openHandout", language)}</span>
           </a>
@@ -456,6 +500,8 @@ export function Presentation() {
             type="button"
             onClick={() => setHelpOpen(true)}
             aria-label={t("shortcuts", language)}
+            title={t("shortcuts", language)}
+            aria-haspopup="dialog"
           >
             <Keyboard size={15} aria-hidden="true" />
             <span aria-hidden="true">?</span>
@@ -467,6 +513,7 @@ export function Presentation() {
             type="button"
             onClick={toggleLanguage}
             aria-label={text(presentationCopy.nav.language, language)}
+            title={text(presentationCopy.nav.language, language)}
           >
             <Languages size={15} aria-hidden="true" />
             <span>{language === "en" ? "AR" : "EN"}</span>
@@ -478,10 +525,11 @@ export function Presentation() {
             type="button"
             onClick={toggleTheme}
             aria-label={text(presentationCopy.nav.theme, language)}
+            title={text(presentationCopy.nav.theme, language)}
             aria-pressed={theme === "light"}
           >
             {theme === "dark" ? <Sun size={15} aria-hidden="true" /> : <Moon size={15} aria-hidden="true" />}
-            <span>{theme === "dark" ? "LIGHT" : "DARK"}</span>
+            <span>{t(theme === "dark" ? "themeLight" : "themeDark", language)}</span>
           </button>
         </div>
       </header>

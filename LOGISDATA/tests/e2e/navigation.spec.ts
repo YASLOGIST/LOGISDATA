@@ -4,6 +4,7 @@ import { expect, test, type Page } from "@playwright/test";
 async function enterControlRoom(page: Page, url = "/") {
   await page.goto(url);
   await expect(page.locator("canvas")).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator(".presentation-root")).toHaveAttribute("data-interactive", "true");
 }
 
 test.describe("section navigation", () => {
@@ -92,8 +93,29 @@ test.describe("preferences", () => {
   });
 });
 
-test.describe("keyboard help", () => {
-  test("opens with ? and closes with Escape", async ({ page }) => {
+test.describe("keyboard boundaries", () => {
+  test("focused controls and modal dialogs are protected from global navigation shortcuts", async ({ page }) => {
+    await enterControlRoom(page);
+    const html = page.locator("html");
+    const progress = page.getByRole("progressbar");
+    const theme = page.getByRole("button", { name: "Theme" });
+    const before = await html.getAttribute("data-theme");
+
+    await theme.focus();
+    await page.keyboard.press("Space");
+    await expect(html).toHaveAttribute("data-theme", before === "dark" ? "light" : "dark");
+    await expect(progress).toHaveAttribute("aria-valuenow", "1");
+
+    await page.getByRole("button", { name: "ROI Calculator" }).click();
+    const calculator = page.getByRole("dialog", { name: /Executive Margin Recovery Calculator/i });
+    await expect(calculator).toBeVisible();
+    await page.keyboard.press("End");
+    await expect(progress).toHaveAttribute("aria-valuenow", "1");
+    await page.keyboard.press("Escape");
+    await expect(calculator).toBeHidden();
+  });
+
+  test("keyboard help opens with ? and closes with Escape", async ({ page }) => {
     await enterControlRoom(page);
     await page.keyboard.press("?");
     const dialog = page.getByRole("dialog");

@@ -49,6 +49,24 @@ describe.each(SECTION_CASES)("$name section", ({ Component, headingId, level }) 
   });
 });
 
+describe("HeroSection", () => {
+  it("opens the inspector for the selected network node", async () => {
+    const user = userEvent.setup();
+    const onSelectNode = vi.fn();
+    render(
+      <HeroSection
+        language="en"
+        active
+        reduced
+        scenario="mitigated"
+        onSelectNode={onSelectNode}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /Inspect Port/i }));
+    expect(onSelectNode).toHaveBeenCalledWith("port");
+  });
+});
+
 describe("AuditSection", () => {
   it("renders every freight row with a row header and a verdict", () => {
     render(<AuditSection language="en" active reduced={false} />);
@@ -66,6 +84,22 @@ describe("AuditSection", () => {
     render(<AuditSection language="en" active reduced={false} />);
     expect(screen.getByRole("button", { name: /export csv/i })).toHaveAttribute("data-dataset", "freight-audit");
   });
+
+  it("filters by text and verdict and exposes a localized empty state", async () => {
+    const user = userEvent.setup();
+    render(<AuditSection language="en" active reduced scenario="baseline" />);
+
+    const search = screen.getByRole("textbox", { name: /search/i });
+    await user.type(search, "not-a-freight-type");
+    expect(screen.getByText("No records match the current filters.")).toBeInTheDocument();
+    expect(within(screen.getByRole("table")).getAllByRole("row")).toHaveLength(2);
+
+    await user.clear(search);
+    await user.click(screen.getByRole("button", { name: /passed/i }));
+    expect(screen.getByText("No records match the current filters.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /^all$/i }));
+    expect(screen.queryByText("No records match the current filters.")).toBeNull();
+  });
 });
 
 describe("DemandSection", () => {
@@ -81,6 +115,22 @@ describe("RoutesSection", () => {
     render(<RoutesSection language="en" active reduced={false} />);
     expect(within(screen.getByRole("table")).getAllByRole("rowheader")).toHaveLength(routeRegions.length);
     expect(screen.getByText(currency(routeSummary.totalSavings, "en"))).toBeInTheDocument();
+  });
+
+  it("sorts every numeric column and announces direction", async () => {
+    const user = userEvent.setup();
+    render(<RoutesSection language="en" active reduced />);
+
+    for (const name of [/mileage waste/i, /fuel loss/i, /gps deviation/i, /optimized savings/i]) {
+      const header = screen.getByRole("columnheader", { name });
+      await user.click(within(header).getByRole("button"));
+      expect(screen.getByRole("columnheader", { name })).toHaveAttribute("aria-sort", "descending");
+    }
+
+    const savingsHeader = screen.getByRole("columnheader", { name: /optimized savings/i });
+    await user.click(within(savingsHeader).getByRole("button"));
+    expect(screen.getByRole("columnheader", { name: /optimized savings/i }))
+      .toHaveAttribute("aria-sort", "ascending");
   });
 });
 

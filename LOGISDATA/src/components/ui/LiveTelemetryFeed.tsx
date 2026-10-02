@@ -13,13 +13,25 @@ interface LiveTelemetryFeedProps {
   language: Language;
 }
 
+type TelemetryFilter = "all" | TelemetrySeverity;
+
+const TELEMETRY_FILTERS = [
+  { value: "all", label: "allRecords" },
+  { value: "critical", label: "severityCritical" },
+  { value: "warning", label: "severityWarning" },
+  { value: "reconciled", label: "severityReconciled" },
+  { value: "optimized", label: "severityOptimized" },
+] as const;
+
 export function LiveTelemetryFeed({ open, onClose, language }: LiveTelemetryFeedProps) {
   const [events, setEvents] = useState<TelemetryEvent[]>(SAMPLE_TELEMETRY_EVENTS);
   const [isPaused, setIsPaused] = useState(false);
-  const [filterSeverity, setFilterSeverity] = useState<string>("all");
+  const [filterSeverity, setFilterSeverity] = useState<TelemetryFilter>("all");
 
   useEffect(() => {
-    if (isPaused) return;
+    // The drawer remains mounted so filter state survives closing, but a
+    // hidden simulation must not allocate timers or play notification audio.
+    if (!open || isPaused) return;
 
     const interval = setInterval(() => {
       const randomIdx = Math.floor(Math.random() * SAMPLE_TELEMETRY_EVENTS.length);
@@ -43,7 +55,7 @@ export function LiveTelemetryFeed({ open, onClose, language }: LiveTelemetryFeed
     }, 4500);
 
     return () => clearInterval(interval);
-  }, [isPaused]);
+  }, [open, isPaused]);
 
   if (!open) return null;
 
@@ -64,14 +76,16 @@ export function LiveTelemetryFeed({ open, onClose, language }: LiveTelemetryFeed
   };
 
   return (
-    <div className="telemetry-panel" role="region" aria-labelledby="telemetry-panel-title">
+    <div id="telemetry-panel" className="telemetry-panel" role="region" aria-labelledby="telemetry-panel-title">
       <div className="telemetry-header">
         <div className="telemetry-title-group">
           <Activity size={16} className="telemetry-pulse-icon" aria-hidden="true" />
           <h2 id="telemetry-panel-title" className="telemetry-title">
             {t("telemetryTitle", language)}
           </h2>
-          <span className="telemetry-live-badge">{t("livePulse", language)}</span>
+          <span className="telemetry-live-badge" role="status" aria-live="polite">
+            {t(isPaused ? "simulationPaused" : "livePulse", language)}
+          </span>
         </div>
         <div className="telemetry-controls">
           <button
@@ -94,18 +108,24 @@ export function LiveTelemetryFeed({ open, onClose, language }: LiveTelemetryFeed
         </div>
       </div>
 
-      <div className="telemetry-filters">
-        <span className="filter-label">{t("filter", language)}:</span>
-        {(["all", "critical", "warning", "reconciled", "optimized"] as const).map((sev) => (
-          <button
-            key={sev}
-            type="button"
-            className={`filter-chip ${filterSeverity === sev ? "filter-chip-active" : ""}`}
-            onClick={() => setFilterSeverity(sev)}
-          >
-            {sev.toUpperCase()}
-          </button>
-        ))}
+      <p className="telemetry-disclosure">{t("telemetryDisclosure", language)}</p>
+
+      <div className="telemetry-filters" role="group" aria-label={t("filter", language)}>
+        <span className="filter-label" aria-hidden="true">{t("filter", language)}:</span>
+        {TELEMETRY_FILTERS.map((filter) => {
+          const selected = filterSeverity === filter.value;
+          return (
+            <button
+              key={filter.value}
+              type="button"
+              className={`filter-chip ${selected ? "filter-chip-active" : ""}`}
+              aria-pressed={selected}
+              onClick={() => setFilterSeverity(filter.value)}
+            >
+              {t(filter.label, language)}
+            </button>
+          );
+        })}
       </div>
 
       <div className="telemetry-stream" role="log" aria-live="polite">

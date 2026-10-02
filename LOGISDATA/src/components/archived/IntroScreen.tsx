@@ -58,7 +58,7 @@ export function IntroScreen({ onEnter }: IntroScreenProps) {
           aria-pressed={theme === "light"}
         >
           {theme === "dark" ? <Sun size={15} aria-hidden="true" /> : <Moon size={15} aria-hidden="true" />}
-          <span>{theme === "dark" ? "LIGHT" : "DARK"}</span>
+          <span>{t(theme === "dark" ? "themeLight" : "themeDark", language)}</span>
         </button>
       </div>
 

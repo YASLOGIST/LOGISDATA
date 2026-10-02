@@ -80,7 +80,7 @@ function Handout() {
             aria-pressed={theme === "light"}
           >
             {theme === "dark" ? <Sun size={15} aria-hidden="true" /> : <Moon size={15} aria-hidden="true" />}
-            <span>{theme === "dark" ? "LIGHT" : "DARK"}</span>
+            <span>{t(theme === "dark" ? "themeLight" : "themeDark", language)}</span>
           </button>
           <button type="button" className="control-button" onClick={() => window.print()}>
             <Printer size={15} aria-hidden="true" />
@@ -287,6 +287,7 @@ function Handout() {
             <Calculator size={20} className="inline-icon" aria-hidden="true" />
             <strong className="handout-recovery-heading">{t("calculatorTitle", language)}</strong>
           </div>
+          <p className="calculator-disclosure">{t("calculatorDisclosure", language)}</p>
           <div className="handout-recovery-grid">
             <div className="handout-recovery-controls">
               <div className="input-group">

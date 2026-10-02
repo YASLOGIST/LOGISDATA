@@ -1,5 +1,5 @@
 import { demandTiers, freightAuditRows, routeRegions, warehouseBins } from "./data";
-import type { DemandTier, FreightAuditRow, RouteRegion } from "./types";
+import type { DemandTier, FreightAuditRow, RouteRegion, WarehouseBin } from "./types";
 
 /**
  * Derived, memoisable analytics selectors.
@@ -94,13 +94,13 @@ export interface WarehouseSummary {
   accuracy: number;
 }
 
-function summariseWarehouse(): WarehouseSummary {
-  const mismatches = warehouseBins.filter((bin) => bin.status === "mismatch").length;
+function summariseWarehouse(bins: readonly WarehouseBin[] = warehouseBins): WarehouseSummary {
+  const mismatches = bins.filter((bin) => bin.status === "mismatch").length;
   return {
-    total: warehouseBins.length,
+    total: bins.length,
     mismatches,
-    audited: warehouseBins.length - mismatches,
-    accuracy: warehouseBins.length === 0 ? 1 : round((warehouseBins.length - mismatches) / warehouseBins.length, 4),
+    audited: bins.length - mismatches,
+    accuracy: bins.length === 0 ? 1 : round((bins.length - mismatches) / bins.length, 4),
   };
 }
 

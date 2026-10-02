@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import packageMetadata from "../../../../package.json";
 import { getDb, isDatabaseConfigured } from "@/db";
 
 export const dynamic = "force-dynamic";
@@ -51,7 +52,9 @@ export async function GET(): Promise<Response> {
   const payload: HealthPayload = {
     ok: database !== "unavailable",
     service: "logisdata-control-room",
-    version: process.env.NEXT_PUBLIC_APP_VERSION ?? "3.0.0",
+    // Package metadata is the release source of truth. Deployments may
+    // override it with an immutable build identifier when required.
+    version: process.env.NEXT_PUBLIC_APP_VERSION?.trim() || packageMetadata.version,
     database,
     uptimeSeconds: Math.round(process.uptime()),
     timestamp: new Date().toISOString(),
