@@ -1,6 +1,6 @@
 "use client";
 
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas } from "@react-three/fiber";
 import { AdaptiveDpr, Preload, ScrollControls, useScroll } from "@react-three/drei";
 import { motion } from "framer-motion";
 import { ChevronDown, FileText, Keyboard, Languages, Moon, Sun } from "lucide-react";
@@ -33,27 +33,13 @@ const EDITABLE = "input, textarea, select, [contenteditable='true']";
 
 interface ScrollBridgeProps {
   onReady: (element: HTMLDivElement) => void;
-  trackRef: MutableRefObject<HTMLDivElement | null>;
 }
 
-function ScrollBridge({ onReady, trackRef }: ScrollBridgeProps) {
+function ScrollBridge({ onReady }: ScrollBridgeProps) {
   const scroll = useScroll();
-  const viewport = useThree((state) => state.size);
-
   useEffect(() => {
     onReady(scroll.el);
   }, [onReady, scroll.el]);
-
-  // Keep the readable layer on the same damped timeline as the camera and
-  // the 3D labels. Using raw scrollTop here would make the prose jump ahead
-  // while ScrollControls was still easing the scene toward it.
-  useFrame(() => {
-    const track = trackRef.current;
-    if (!track) return;
-    const travel = viewport.height * Math.max(0, scroll.pages - 1);
-    track.style.transform = `translate3d(0, -${scroll.offset * travel}px, 0)`;
-  });
-
   return null;
 }
 
@@ -71,10 +57,10 @@ interface DeckOverlayProps {
  * html>` helper. That helper portals its children into a second React root;
  * under React 19 the bridge can race the Canvas context and emit the fatal
  * "Hooks can only be used within the Canvas component" error. The scene still
- * uses ScrollControls for its normalized offset, while the in-canvas bridge
- * moves this fixed overlay with the same damped offset in one composited
- * transform. The result is one scroll source, two render layers, and no
- * cross-root React ownership or context leakage.
+ * uses ScrollControls for its normalized offset, while the native scroll
+ * bridge moves this fixed overlay with the exact scroll range in one
+ * composited transform. The result is one scroll source, two render layers,
+ * and no cross-root React ownership or context leakage.
  */
 function DeckOverlay({ language, reduced, activeSection, trackRef }: DeckOverlayProps) {
   return (
@@ -149,10 +135,9 @@ export function Presentation() {
     };
 
     const sync = () => {
-      // This immediate write is also the pre-Canvas fallback for a deep link
-      // while the 3D chunk is still loading. Once ScrollBridge mounts, its
-      // useFrame callback replaces it with the damped position used by the
-      // camera, so normal scrolling remains visually synchronized.
+      // Keep the readable layer tied to the native scroller. This immediate
+      // composited write also makes deep links work while the 3D chunk is
+      // still loading; the camera is free to ease independently.
       const track = htmlTrackRef.current;
       const range = Math.max(0, scrollHeight - clientHeight);
       if (track && range > 0) {
@@ -485,7 +470,7 @@ export function Presentation() {
                 overscrollBehaviorY: "contain",
               }}
             >
-            <ScrollBridge onReady={onScrollReady} trackRef={htmlTrackRef} />
+            <ScrollBridge onReady={onScrollReady} />
             <Suspense fallback={null}>
               <IndustrialScene
                 language={language}

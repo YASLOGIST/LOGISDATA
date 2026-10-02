@@ -114,8 +114,8 @@ button:focus-visible {
  * The readable deck is a sibling overlay rather than drei's `Scroll html`
  * portal. The wrapper is transparent to wheel events so ScrollControls keeps
  * ownership of the native scroller; only actual controls opt back into hit
- * testing. The track is moved by the Canvas bridge with ScrollControls'
- * damped offset, keeping HTML and WebGL locked without a second React root.
+ * testing. The track is moved by the native scroll bridge, keeping the
+ * readable layer locked to the scroll position without a second React root.
  */
 .html-deck-frame {
   position: fixed;

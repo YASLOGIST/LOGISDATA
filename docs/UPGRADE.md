@@ -6,7 +6,7 @@ Target: this branch, package version 3.0.0.
 > Follow-up hardening on this branch removes the remaining drei HTML portals / React 19
 > second-root failure mode. The readable deck now renders in the main React tree
 > beside the Canvas, while scene annotations use Canvas-native SDF text and follow
-> the same damped ScrollControls offset.
+> the same native scroll position.
 
 Every number below was measured on this machine (Node 22.22.3, npm 10.9.8) by building and serving both revisions side by side — the baseline from a clean `git worktree` of `9ae5a8a`, the upgrade from the working tree.
 
@@ -218,7 +218,7 @@ npm run test:e2e
 - **CONFIRMED.** `script-src 'unsafe-inline'` is still required; the reasoning and the compensating controls are in `docs/ARCHITECTURE.md` §6.
 - **INFERRED — PROBABLE.** Arabic copy is presentation-grade but unreviewed by a domain expert.
 - **CONFIRMED.** The figures are illustrative. Nothing in this repository should be used for an operational decision without substituting audited source data.
-- **RESOLVED in the follow-up hardening pass.** The deck no longer uses drei's `Scroll html`, and the 3D annotations no longer use `drei/Html`; the readable sections stay in the main React tree and scene labels use Canvas-native SDF text. `ScrollBridge` applies the same damped ScrollControls offset to the composited deck track. The smoke test now treats every page error as a failure instead of allow-listing the old R3F message.
+- **RESOLVED in the follow-up hardening pass.** The deck no longer uses drei's `Scroll html`, and the 3D annotations no longer use `drei/Html`; the readable sections stay in the main React tree and scene labels use Canvas-native SDF text. The native scroll bridge applies the measured scroll range to the composited deck track. The smoke test now treats every page error as a failure instead of allow-listing the old R3F message.
 
 ## 6. Backlog — only items that were technically impossible here
 
