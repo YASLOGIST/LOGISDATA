@@ -31,6 +31,11 @@ const SERVER_SNAPSHOT: PreferenceSnapshot = Object.freeze({
 const listeners = new Set<() => void>();
 let snapshot: PreferenceSnapshot = SERVER_SNAPSHOT;
 let initialized = false;
+// WebGL capability does not change when the viewport changes. Keep the
+// result from initialization so orientation changes only reclassify quality;
+// they do not create a fresh probe context (which is costly and can exhaust
+// the browser's context budget on mobile resize storms).
+let webglAvailable: boolean | null = null;
 
 function safeRead(key: string): string | null {
   try {
@@ -64,6 +69,7 @@ function initialize(): void {
     device: probeDevice(),
     hydrated: true,
   };
+  webglAvailable = snapshot.device.tier !== "none";
 }
 
 function emit(): void {
@@ -86,7 +92,23 @@ export function subscribe(listener: () => void): () => void {
     initialize();
     emit();
   };
-  const onEnvironmentChange = () => update({ device: probeDevice() });
+  let resizeFrame: number | null = null;
+  const refreshDevice = () => {
+    resizeFrame = null;
+    // Only the tier inputs that can change with the environment are read
+    // again. Reusing the cached capability avoids a WebGL context probe for
+    // every intermediate resize event during browser-chrome/orientation
+    // changes.
+    update({ device: probeDevice(webglAvailable ?? undefined) });
+  };
+  const onEnvironmentChange = () => {
+    if (resizeFrame !== null) return;
+    if (typeof window.requestAnimationFrame === "function") {
+      resizeFrame = window.requestAnimationFrame(refreshDevice);
+    } else {
+      refreshDevice();
+    }
+  };
 
   const motionQuery = window.matchMedia?.("(prefers-reduced-motion: reduce)");
   window.addEventListener("storage", onStorage);
@@ -98,6 +120,7 @@ export function subscribe(listener: () => void): () => void {
     window.removeEventListener("storage", onStorage);
     window.removeEventListener("resize", onEnvironmentChange);
     motionQuery?.removeEventListener?.("change", onEnvironmentChange);
+    if (resizeFrame !== null) window.cancelAnimationFrame?.(resizeFrame);
   };
 }
 
@@ -125,6 +148,7 @@ export function setTheme(theme: ThemeMode): void {
 /** Test-only: restores the module to its pre-hydration state. */
 export function resetPreferenceStore(): void {
   initialized = false;
+  webglAvailable = null;
   snapshot = SERVER_SNAPSHOT;
   listeners.clear();
 }

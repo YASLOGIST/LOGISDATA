@@ -104,10 +104,14 @@ export function classifyDevice(input: {
 }
 
 /** Browser-side convenience wrapper around {@link classifyDevice}. */
-export function probeDevice(): DeviceProfile {
+export function probeDevice(webglOverride?: boolean): DeviceProfile {
   if (typeof window === "undefined") return STATIC_PROFILE;
   return classifyDevice({
-    webgl: detectWebGL(),
+    // Capability is stable for the lifetime of a page. Callers that already
+    // probed it (for example the resize handler in preferenceStore) can pass
+    // the result to avoid creating and destroying a WebGL context on every
+    // mobile viewport resize event.
+    webgl: webglOverride ?? detectWebGL(),
     reducedMotion: prefersReducedMotion(),
     devicePixelRatio: window.devicePixelRatio || 1,
     navigator: window.navigator as unknown as NavigatorLike,
