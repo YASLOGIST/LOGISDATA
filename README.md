@@ -1,6 +1,9 @@
 <div align="center">
 
-<img src="./assets/readme/yaslogist-hero.gif" alt="LOGISDATA — cinematic supply-chain audit intelligence: the real 8-node supply network under an animated emerald audit gate, with the five audit theatres, live reconciliation metrics and the YASLOGIST engineering signature" width="100%">
+<picture>
+  <source media="(prefers-reduced-motion: reduce)" srcset="./assets/readme/yaslogist-hero.png">
+  <img src="./assets/readme/yaslogist-hero.gif" alt="LOGISDATA — cinematic control-room animation: the real 8-node, 10-edge supply graph laid out as a floor plan in perspective, an emerald audit-gate light curtain sweeping it, nodes resolving to Verified, Leak Risk and Phantom Signal, the four reconciliations flipping to Reconciled, and the YASLOGIST engineering signature" width="100%">
+</picture>
 
 </div>
 
@@ -55,8 +58,8 @@ Margin leakage is not a reporting problem — it is a **reconciliation** problem
 | **Initial JS on first paint** | zero Three.js | the engine is code-split and loaded only once the device is known to support WebGL |
 | **Runtime data fetches** | 0 on the critical path | the domain model is typed, static and tree-shaken |
 | **Database** | optional | the presentation is fully functional with no `DATABASE_URL` |
-| **Source surface** | 53 TypeScript/TSX modules (7,059 lines) + 3,156 lines of tokenized CSS | measured from `src/` on 2026-10-02 |
-| **Automated coverage** | 213 passing unit tests + 60 passing Playwright checks | unit gates pass locally; the complete browser suite passes in CI |
+| **Source surface** | 53 TypeScript/TSX modules (7,087 lines) + 3,156 lines of tokenized CSS | measured from `src/` on 2026-10-10 |
+| **Automated coverage** | 213 passing unit tests + 60 Playwright checks | unit suite re-run 2026-10-10: 213/213; the browser suite runs in CI |
 | **Initial shell payload** | 202,616 B gzip | measured against the 205,000 B production budget |
 | **Known vulnerabilities** | 0 (`npm audit`) | pinned toolchain plus an `esbuild` override |
 
@@ -160,6 +163,12 @@ focus(offset, i) = clamp(1 − |pagePosition − i| / 1.08, 0, 1)
 ```
 
 `IndustrialScene` applies it to mesh scale; `FocusFadeLabel` applies the identical curve to label opacity through [`lib/sceneFocus.ts`](LOGISDATA/src/lib/sceneFocus.ts). Both consumers therefore stay aligned by construction—the regression tests lock the exact section peaks at offsets 0, 0.25, 0.5, 0.75, and 1.
+
+<div align="center">
+<img src="./assets/readme/focus-curve.svg" alt="Animated plot of the scene-focus curve: a scroll cursor travels across the five sections; each section's focus rises and falls along a triangular curve of half-width 1.08, its label fades with focus and hides below 0.05, and its 3D group scales between 0.56 and 1.0" width="100%">
+</div>
+
+<sub>The plot above is computed from the same constants as the runtime — <code>FOCUS_SPREAD = 1.08</code>, <code>BASE_SCALE = 0.56</code>, <code>FOCUS_SCALE = 0.44</code>, label hide threshold <code>0.05</code> — and animated as the scroll position dwells on each section in turn. Labels fade exactly as <code>applyLabelFocus</code> fades them.</sub>
 
 ### Module map
 
@@ -571,22 +580,61 @@ Metadata is wired in [`src/app/layout.tsx`](LOGISDATA/src/app/layout.tsx): the a
 
 ## 08 / ENGINEERING STATUS
 
-### The README hero asset
+### The README visual system
 
-The cinematic hero at the top of this document is an **original, procedurally rendered animation** produced for this repository — not a screenshot, not stock footage, not a typing banner.
+The cinematic hero at the top of this document is an **original, procedurally rendered animation** made for this repository. It is not a screenshot, stock footage or a typing banner. Every element in it comes from the product: the 8 nodes and 10 edges of [`lib/data.ts`](LOGISDATA/src/lib/data.ts) with their real `verified` / `leak` / `phantom` statuses, the app's own status vocabulary (*Verified · Leak Risk · Phantom Signal*), the five theatres from the navigation copy, and the three illustrative model metrics.
 
 | Property | Value |
 | :--- | :--- |
-| Animated hero | [`assets/readme/yaslogist-hero.gif`](assets/readme/yaslogist-hero.gif) |
-| Static poster | [`assets/readme/yaslogist-hero.png`](assets/readme/yaslogist-hero.png) |
-| Geometry | `1920 × 720` (2.67:1 — full README content width) |
-| Motion | 125 frames · 80 ms · **10.0 s seamless loop** |
-| Scene | The real 8-node / 10-edge supply graph from `lib/data.ts`, the five audit theatres, the audit-gate sweep, and the illustrative $2.1T / 3.8% / 6.4x metrics |
-| Compression | 255-colour global palette, 8×8 Bayer dither, inter-frame deltas |
-| Weight | 7.3 MB · poster 282 KB |
-| Supporting motion | [`kinetic-statement.svg`](assets/readme/kinetic-statement.svg) · [`divider-pulse.svg`](assets/readme/divider-pulse.svg) · [`yaslogist-signature.svg`](assets/readme/yaslogist-signature.svg) |
+| Animated hero | [`assets/readme/yaslogist-hero.gif`](assets/readme/yaslogist-hero.gif) — 1920 × 720, 120 frames × 80 ms = **9.6 s seamless loop**, 5.8 MB |
+| Static poster | [`assets/readme/yaslogist-hero.png`](assets/readme/yaslogist-hero.png) — full-colour frame at the Act III peak; served automatically to visitors with `prefers-reduced-motion` |
+| Renderer | [`assets/readme/source/render-hero.mjs`](assets/readme/source/render-hero.mjs) — Skia (`@napi-rs/canvas`), deterministic, no browser |
+| Typography | Space Grotesk + JetBrains Mono, composited as real vector type (no generated lettering) |
 
-Every animated quantity in the hero is periodic over the loop, so the wrap step measures the same as any interior frame step — there is no seam, no flash and no reset.
+<details>
+<summary><b>Direction — what moves, and why</b></summary>
+
+<br>
+
+| Act | Loop window | What happens |
+| :--- | :--- | :--- |
+| **I · Emergence** | 0.00 – 0.18 | Calm baseline. Packets idle on the graph, range rings breathe outward on the floor, a light glint passes through the LOGISDATA wordmark |
+| **II · Activation** | 0.18 – 0.45 | The emerald audit gate materialises and sweeps the floor plan. The floor grid lights where it passes. Each node it crosses flashes and resolves to its real status, and the four reconciliations flip from *Awaiting* to *Reconciled* |
+| **III · System intelligence** | 0.45 – 0.74 | Reticles lock on the four flagged nodes, edges between audited nodes turn emerald, and the read-out reaches 8/8 nodes · 4 verified · 4 flagged |
+| **IV · Brand resolution** | 0.74 – 1.00 | The gate dissolves and audit state settles back to baseline. A glint passes through the YASLOGIST signature, and the frame returns to its opening state |
+
+A slow orbital camera (yaw, pitch and dolly, all periodic) gives the scene real parallax. The floor shadows, dashed drop-pins and depth-scaled labels sit in the same 3D projection as the graph.
+
+</details>
+
+<details>
+<summary><b>Encoder — how a 1920 × 720 loop stays under 6 MB without banding</b></summary>
+
+<br>
+
+1. **One fitted global palette.** 9 brand colours are pinned, and 246 more are fitted by median cut and refined with k-means over 16 frames sampled across all four acts. The palette is checked against the source render: mean error ≈ 4/765 per pixel, 99th percentile ≤ 15. The previous hero's palette mapped faint light shafts to saturated cyan; this encoder replaces it.
+2. **Ordered dither.** An 8 × 8 Bayer matrix is position-stable, so static regions produce identical indices in every frame and cost almost nothing.
+3. **Display-referenced deltas.** Each frame is diffed against what the decoder *is showing*, not against the previous source frame, so the bounded tolerance can never accumulate into drift. Each frame is also cropped to its dirty rectangle.
+4. **Run extension.** A changed pixel reuses its left neighbour's index when the two are perceptually indistinguishable, which gives LZW longer runs.
+5. **Loop closure.** Every animated quantity is a periodic function of loop time, and event state fades out before the wrap. Measured on the decoded GIF, the wrap step (0.83) falls inside the range of interior frame steps (mean 0.52, max 1.07), so the loop has no visible seam.
+
+</details>
+
+| Supporting motion | Role |
+| :--- | :--- |
+| [`kinetic-statement.svg`](assets/readme/kinetic-statement.svg) | The four reconciliations, cycling on a 12 s rail |
+| [`focus-curve.svg`](assets/readme/focus-curve.svg) | The runtime focus curve, animated from the real constants |
+| [`divider-pulse.svg`](assets/readme/divider-pulse.svg) | Luminous section divider |
+| [`yaslogist-signature.svg`](assets/readme/yaslogist-signature.svg) | Closing brand signature |
+
+GitHub renders README SVGs through `<img>`, which cannot load web fonts. So every glyph in these SVGs is **outlined to a path** from the real font files, and type looks identical on every machine. Motion is native SMIL: no script and no CSS.
+
+```bash
+cd assets/readme/source
+npm install
+npm run build                                   # hero GIF + poster + SVGs
+node render-hero.mjs --frame=60 --out=/tmp/f.png  # inspect any single frame
+```
 
 ### Shipped versus illustrative
 
@@ -607,10 +655,12 @@ LOGISDATA/
 ├── README.md                    this document
 ├── assets/readme/               cinematic hero, poster and secondary motion
 │   ├── yaslogist-hero.gif           animated README hero (primary)
-│   ├── yaslogist-hero.png           static poster (fallback)
-│   ├── kinetic-statement.svg        cycling technical statement
+│   ├── yaslogist-hero.png           static poster (reduced-motion fallback)
+│   ├── kinetic-statement.svg        the four reconciliations, cycling
+│   ├── focus-curve.svg              animated scene-focus curve
 │   ├── divider-pulse.svg            luminous section divider
-│   └── yaslogist-signature.svg      closing brand animation
+│   ├── yaslogist-signature.svg      closing brand signature
+│   └── source/                      deterministic renderers for all of the above
 ├── LOGISDATA/                   the Next.js application
 │   ├── public/
 │   │   ├── og-image-animated.gif   animated social card (primary)
