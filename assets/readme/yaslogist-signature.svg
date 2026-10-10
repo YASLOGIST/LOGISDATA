@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="180" viewBox="0 0 960 180" role="img" aria-label="YASLOGIST — permanent engineering signature with a subtle animated rule and light glint">
+  <title>YASLOGIST — engineering signature</title>
+  <defs>
+    <linearGradient id="sig-plate" x1="0" y1="0" x2="960" y2="180" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#040c14"/>
+      <stop offset="1" stop-color="#071a2a"/>
+    </linearGradient>
+    <linearGradient id="sig-rule" x1="330" y1="0" x2="630" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4de1c1" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#4de1c1" stop-opacity="0.05"/>
+    </linearGradient>
+    <linearGradient id="sig-glint" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7dd3fc" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#7dd3fc" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#7dd3fc" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- dark plate -->
+  <rect x="0.5" y="0.5" width="959" height="179" rx="14" fill="url(#sig-plate)" stroke="#4de1c1" stroke-opacity="0.22"/>
+
+  <!-- corner brackets -->
+  <g stroke="#7dd3fc" stroke-opacity="0.5" stroke-width="1.4" fill="none">
+    <path d="M 28 48 L 28 28 L 48 28"/>
+    <path d="M 932 48 L 932 28 L 912 28"/>
+    <path d="M 28 132 L 28 152 L 48 152"/>
+    <path d="M 932 132 L 932 152 L 912 152"/>
+  </g>
+
+  <!-- overline -->
+  <text x="480" y="58" text-anchor="middle"
+    font-family="'JetBrains Mono','SFMono-Regular',Menlo,Consolas,monospace"
+    font-size="11.5" letter-spacing="5.5" fill="#6e8795">ENGINEERING SIGNATURE</text>
+
+  <!-- wordmark: always fully visible (brand must never disappear) -->
+  <g>
+    <text x="480" y="108" text-anchor="middle"
+      font-family="'Space Grotesk','Segoe UI',Helvetica,Arial,sans-serif"
+      font-weight="600" font-size="52" letter-spacing="14" fill="#edf7fb">YASLOGIST</text>
+
+    <!-- subtle glint travelling across the wordmark, clipped to text -->
+    <clipPath id="sig-clip">
+      <text x="480" y="108" text-anchor="middle"
+        font-family="'Space Grotesk','Segoe UI',Helvetica,Arial,sans-serif"
+        font-weight="600" font-size="52" letter-spacing="14">YASLOGIST</text>
+    </clipPath>
+    <g clip-path="url(#sig-clip)">
+      <rect x="120" y="70" width="120" height="56" fill="url(#sig-glint)" transform="skewX(-18)">
+        <animateTransform attributeName="transform" type="translate"
+          values="-160 0; 900 0" keyTimes="0;1" dur="6s" repeatCount="indefinite"
+          additive="sum"/>
+      </rect>
+    </g>
+  </g>
+
+  <!-- animated rule drawing out from centre -->
+  <rect x="330" y="122" width="300" height="1.6" fill="url(#sig-rule)">
+    <animate attributeName="width" values="0;300;300;0" keyTimes="0;0.22;0.82;1" dur="6s" repeatCount="indefinite"/>
+    <animate attributeName="x" values="480;330;330;480" keyTimes="0;0.22;0.82;1" dur="6s" repeatCount="indefinite"/>
+  </rect>
+  <rect x="330" y="122" width="300" height="1.6" fill="url(#sig-rule)" transform="scale(-1,1) translate(-960,0)">
+    <animate attributeName="width" values="0;300;300;0" keyTimes="0;0.22;0.82;1" dur="6s" repeatCount="indefinite"/>
+    <animate attributeName="x" values="480;330;330;480" keyTimes="0;0.22;0.82;1" dur="6s" repeatCount="indefinite"/>
+  </rect>
+
+  <!-- base line -->
+  <text x="480" y="152" text-anchor="middle"
+    font-family="'JetBrains Mono','SFMono-Regular',Menlo,Consolas,monospace"
+    font-size="13" letter-spacing="3.2" fill="#a8becb">yaslogist.com</text>
+</svg>
