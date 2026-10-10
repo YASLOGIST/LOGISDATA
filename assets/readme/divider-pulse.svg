@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="24" viewBox="0 0 1200 24" role="img" aria-label="Animated section divider — a luminous signal pulse travelling along a precision rule">
+  <title>LOGISDATA — luminous section divider</title>
+  <defs>
+    <linearGradient id="rule" x1="0" y1="0" x2="1200" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4de1c1" stop-opacity="0.55"/>
+      <stop offset="0.18" stop-color="#4de1c1" stop-opacity="0.14"/>
+      <stop offset="0.82" stop-color="#7dd3fc" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#7dd3fc" stop-opacity="0.55"/>
+    </linearGradient>
+    <radialGradient id="pulseGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#4de1c1" stop-opacity="0.85"/>
+      <stop offset="0.35" stop-color="#4de1c1" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#4de1c1" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="trail" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4de1c1" stop-opacity="0"/>
+      <stop offset="1" stop-color="#4de1c1" stop-opacity="0.7"/>
+    </linearGradient>
+  </defs>
+
+  <!-- base rule -->
+  <rect x="0" y="11" width="1200" height="1.4" fill="url(#rule)"/>
+
+  <!-- precision ticks -->
+  <g fill="#7dd3fc" fill-opacity="0.30">
+    <rect x="150" y="8" width="1" height="4"/>
+    <rect x="350" y="8" width="1" height="4"/>
+    <rect x="550" y="8" width="1" height="4"/>
+    <rect x="750" y="8" width="1" height="4"/>
+    <rect x="950" y="8" width="1" height="4"/>
+    <rect x="1099" y="8" width="1" height="4"/>
+  </g>
+
+  <!-- travelling signal pulse: seamless 4 s loop, parks off-canvas at both ends -->
+  <g>
+    <animateTransform attributeName="transform" type="translate"
+      values="-80 0; 1280 0" keyTimes="0;1" dur="4s" repeatCount="indefinite"/>
+    <rect x="-72" y="11.2" width="72" height="1" fill="url(#trail)"/>
+    <circle cx="0" cy="12" r="26" fill="url(#pulseGlow)"/>
+    <circle cx="0" cy="12" r="2.4" fill="#4de1c1"/>
+  </g>
+</svg>

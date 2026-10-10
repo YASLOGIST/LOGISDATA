@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="72" viewBox="0 0 1200 72" role="img" aria-label="Animated technical statement cycling through the four system reconciliations audited by LOGISDATA">
+  <title>LOGISDATA — kinetic technical statement</title>
+  <defs>
+    <linearGradient id="plate" x1="0" y1="0" x2="1200" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#030a11" stop-opacity="0.96"/>
+      <stop offset="1" stop-color="#06121d" stop-opacity="0.96"/>
+    </linearGradient>
+  </defs>
+
+  <!-- dark plate keeps the statement readable on light and dark README themes -->
+  <rect x="0.5" y="0.5" width="1199" height="71" rx="10" fill="url(#plate)" stroke="#4de1c1" stroke-opacity="0.18"/>
+
+  <!-- travelling accent bar -->
+  <rect x="24" y="20" width="3" height="32" fill="#4de1c1" fill-opacity="0.9">
+    <animate attributeName="fill-opacity" values="0.9;0.35;0.9" keyTimes="0;0.5;1" dur="2.4s" repeatCount="indefinite"/>
+  </rect>
+
+  <g font-family="'JetBrains Mono','SFMono-Regular',Menlo,Consolas,monospace" font-size="15.5" letter-spacing="2.2">
+    <text x="46" y="42" fill="#edf7fb">
+      <tspan fill="#7dd3fc">01</tspan><tspan fill="#6e8795"> · </tspan><tspan>FREIGHT BILLING × TELEMETRY — RECONCILED ON ONE CANVAS</tspan>
+      <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.10;0.22;0.30" dur="9.6s" repeatCount="indefinite"/>
+    </text>
+    <text x="46" y="42" fill="#edf7fb">
+      <tspan fill="#7dd3fc">02</tspan><tspan fill="#6e8795"> · </tspan><tspan>CONSUMER DEMAND × ORDER AMPLIFICATION — QUANTIFIED</tspan>
+      <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.10;0.22;0.30" begin="2.4s" dur="9.6s" repeatCount="indefinite"/>
+    </text>
+    <text x="46" y="42" fill="#edf7fb">
+      <tspan fill="#7dd3fc">03</tspan><tspan fill="#6e8795"> · </tspan><tspan>PLANNED ROUTES × GPS REALITY — RECONCILED</tspan>
+      <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.10;0.22;0.30" begin="4.8s" dur="9.6s" repeatCount="indefinite"/>
+    </text>
+    <text x="46" y="42" fill="#edf7fb">
+      <tspan fill="#7dd3fc">04</tspan><tspan fill="#6e8795"> · </tspan><tspan>WMS MASTER DATA × PHYSICAL SHELF — VERIFIED</tspan>
+      <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.10;0.22;0.30" begin="7.2s" dur="9.6s" repeatCount="indefinite"/>
+    </text>
+  </g>
+
+  <!-- progress hairline -->
+  <rect x="24" y="62" width="1152" height="1" fill="#7dd3fc" fill-opacity="0.14"/>
+  <rect x="24" y="62" width="288" height="1" fill="#4de1c1" fill-opacity="0.8">
+    <animate attributeName="x" values="24;936;24" keyTimes="0;0.5;1" dur="9.6s" repeatCount="indefinite"/>
+  </rect>
+</svg>
