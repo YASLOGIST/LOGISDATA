@@ -568,6 +568,7 @@ export function Presentation() {
             style={{
               scrollbarWidth: "none",
               overscrollBehaviorY: "contain",
+              scrollSnapType: reduced ? "y proximity" : "y mandatory",
             }}
           >
             <ScrollBridge onReady={onScrollReady} />

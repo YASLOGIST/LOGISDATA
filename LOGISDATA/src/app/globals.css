@@ -325,11 +325,14 @@ button:focus-visible {
    * entering section no longer invalidates the other four full-viewport
    * subtrees stacked in the native scroll host.
    *
-   * Scroll snapping is intentionally omitted: the briefing follows the
-   * browser's continuous native scroll position, while nav and keyboard
-   * jumps choose exact section offsets explicitly.
+   * Each section is a native snap point. Wheel, trackpad and touch gestures
+   * advance through the five chapter positions; the browser settles on the
+   * nearest chapter when input stops. Reduced-motion users get proximity
+   * snapping rather than a forced long-distance settle.
    */
   contain: layout paint style;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 
 .section-inner {

@@ -46,6 +46,23 @@ test.describe("section navigation", () => {
     });
   });
 
+  test("wheel scrolling settles on chapter snap points and reverses to the prior step", async ({ page }) => {
+    await enterControlRoom(page);
+    const progressbar = page.getByRole("progressbar");
+    const scrollTop = () => page.locator(".html-deck-host").evaluate((host) => host.parentElement?.scrollTop ?? -1);
+    const viewportHeight = await page.locator(".html-deck-host").evaluate(
+      (host) => host.parentElement?.clientHeight ?? 0,
+    );
+
+    await page.mouse.wheel(0, 700);
+    await expect(progressbar).toHaveAttribute("aria-valuenow", "2", { timeout: 15_000 });
+    await expect.poll(async () => Math.abs((await scrollTop()) - viewportHeight)).toBeLessThan(4);
+
+    await page.mouse.wheel(0, -700);
+    await expect(progressbar).toHaveAttribute("aria-valuenow", "1", { timeout: 15_000 });
+    await expect.poll(scrollTop).toBeLessThan(4);
+  });
+
   test("the progress indicator tracks the active section", async ({ page }) => {
     await enterControlRoom(page);
     const progressbar = page.getByRole("progressbar");
