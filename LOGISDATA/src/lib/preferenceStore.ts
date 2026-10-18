@@ -1,4 +1,4 @@
-import { probeDevice, STATIC_PROFILE, type DeviceProfile } from "./device";
+import { deviceProfilesEqual, probeDevice, STATIC_PROFILE, type DeviceProfile } from "./device";
 import type { Language, ThemeMode } from "./types";
 
 /**
@@ -66,7 +66,10 @@ function initialize(): void {
   snapshot = {
     language: storedLanguage === "ar" || storedLanguage === "en" ? storedLanguage : "en",
     theme: storedTheme === "light" || storedTheme === "dark" ? storedTheme : readSystemTheme(),
-    device: probeDevice(),
+    // Capability is stable for the page lifetime: re-initialisation (for
+    // example a cross-tab storage sync) must not spend another WebGL probe
+    // context when the first result is already known.
+    device: probeDevice(webglAvailable ?? undefined),
     hydrated: true,
   };
   webglAvailable = snapshot.device.tier !== "none";
@@ -99,7 +102,14 @@ export function subscribe(listener: () => void): () => void {
     // again. Reusing the cached capability avoids a WebGL context probe for
     // every intermediate resize event during browser-chrome/orientation
     // changes.
-    update({ device: probeDevice(webglAvailable ?? undefined) });
+    const device = probeDevice(webglAvailable ?? undefined);
+    // A fresh profile object would otherwise replace the snapshot on every
+    // resize frame — re-rendering the whole provider tree and invalidating
+    // the memoized 3D scene even when the classification is unchanged.
+    // Keep the existing object (and its identity) until something actually
+    // observable changes.
+    if (deviceProfilesEqual(snapshot.device, device)) return;
+    update({ device });
   };
   const onEnvironmentChange = () => {
     if (resizeFrame !== null) return;

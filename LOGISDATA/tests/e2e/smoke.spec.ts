@@ -7,6 +7,13 @@ test.describe("control room entry", () => {
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible({ timeout: 30_000 });
   });
 
+  test("the warehouse environment plate is served as a compact static image", async ({ request }) => {
+    const response = await request.get("/warehouse-interior.jpg");
+    expect(response.ok()).toBe(true);
+    expect(response.headers()["content-type"]).toContain("image/jpeg");
+    expect((await response.body()).byteLength).toBeLessThan(500_000);
+  });
+
   test("the 3D runtime stays a deferred chunk, not part of the initial document", async ({ request }) => {
     const html = await (await request.get("/")).text();
     // The document is the static shell. If Three.js ever gets pulled into the

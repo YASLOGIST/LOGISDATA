@@ -1,8 +1,8 @@
 "use client";
 
-import { useFrame, useThree } from "@react-three/fiber";
+import { useFrame, useLoader, useThree } from "@react-three/fiber";
 import { useScroll } from "@react-three/drei";
-import { memo, useEffect, useMemo, useRef } from "react";
+import { memo, Suspense, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { SECTION_COUNT, pagePositionFromOffset } from "@/lib/sections";
 import type { DeviceProfile } from "@/lib/device";
@@ -52,6 +52,36 @@ const DEPTH_STEP = 2.2;
 
 const clamp01 = (value: number) => THREE.MathUtils.clamp(value, 0, 1);
 const smoothStep = (value: number) => value * value * (3 - 2 * value);
+
+/** Photo-real warehouse plate behind the scroll-synchronized 3D audit models. */
+function WarehouseBackdrop() {
+  const texture = useLoader(THREE.TextureLoader, "/warehouse-interior.jpg");
+
+  // Configure the cached GPU texture once; this is an owned renderer resource,
+  // not React state. The loader cache must retain the same texture reference.
+  /* eslint-disable react-hooks/immutability */
+  useEffect(() => {
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.anisotropy = 4;
+    texture.needsUpdate = true;
+  }, [texture]);
+  /* eslint-enable react-hooks/immutability */
+
+  return (
+    <mesh position={[0, 0, -30]} frustumCulled={false} renderOrder={-10}>
+      <planeGeometry args={[56, 32]} />
+      <meshBasicMaterial
+        map={texture}
+        color="#a9bac2"
+        transparent
+        opacity={0.46}
+        depthWrite={false}
+        fog={false}
+        toneMapped={false}
+      />
+    </mesh>
+  );
+}
 
 function SceneRig({ language, theme, device }: IndustrialSceneProps) {
   const scroll = useScroll();
@@ -153,6 +183,11 @@ function SceneRig({ language, theme, device }: IndustrialSceneProps) {
       <fogExp2 attach="fog" args={[theme === "dark" ? "#06121d" : "#f8fafc", 0.022]} />
       <ambientLight intensity={theme === "dark" ? 0.72 : 1.15} />
       <directionalLight position={[4, 7, 5]} intensity={theme === "dark" ? 1.35 : 1.05} />
+      {device.tier !== "low" && (
+        <Suspense fallback={null}>
+          <WarehouseBackdrop />
+        </Suspense>
+      )}
       {device.effects && <DataStreamField device={device} theme={theme} />}
       <group ref={heroRef}><SupplyNetwork language={language} theme={theme} animate={device.effects} /></group>
       <group ref={auditRef}><AuditScanner language={language} theme={theme} animate={device.effects} /></group>

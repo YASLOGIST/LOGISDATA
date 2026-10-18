@@ -8,15 +8,33 @@
  * - Smooth exponential gain envelopes to guarantee zero clicking or audio clipping.
  */
 
+const SOUND_PREFERENCE_KEY = "logisdata_sound_enabled";
+
+function readSoundPreference(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(SOUND_PREFERENCE_KEY) === "true";
+  } catch {
+    // Storage can be unavailable in private browsing or hardened webviews.
+    return false;
+  }
+}
+
+function persistSoundPreference(enabled: boolean): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(SOUND_PREFERENCE_KEY, String(enabled));
+  } catch {
+    // Audio is an optional enhancement; persistence must never block toggling.
+  }
+}
+
 class SoundSynthesizer {
   private ctx: AudioContext | null = null;
   private enabled = false;
 
   constructor() {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("logisdata_sound_enabled");
-      this.enabled = stored === "true";
-    }
+    this.enabled = readSoundPreference();
   }
 
   public isEnabled(): boolean {
@@ -25,9 +43,7 @@ class SoundSynthesizer {
 
   public toggle(): boolean {
     this.enabled = !this.enabled;
-    if (typeof window !== "undefined") {
-      localStorage.setItem("logisdata_sound_enabled", String(this.enabled));
-    }
+    persistSoundPreference(this.enabled);
     if (this.enabled) {
       this.initContext();
       this.playTone(880, 0.08, "sine", 0.05);
@@ -37,9 +53,7 @@ class SoundSynthesizer {
 
   public setEnabled(val: boolean): void {
     this.enabled = val;
-    if (typeof window !== "undefined") {
-      localStorage.setItem("logisdata_sound_enabled", String(this.enabled));
-    }
+    persistSoundPreference(this.enabled);
   }
 
   private initContext(): AudioContext | null {

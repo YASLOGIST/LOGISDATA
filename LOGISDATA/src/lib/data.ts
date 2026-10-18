@@ -134,7 +134,7 @@ export const presentationCopy: PresentationCopy = {
     },
     mismatch: { en: "Mismatch", ar: "عدم تطابق" },
     audited: { en: "Audited", ar: "مدقق" },
-    scanLabel: { en: "REAL-TIME SCAN", ar: "مسح لحظي" },
+    scanLabel: { en: "SIMULATED SCAN", ar: "مسح محاكى" },
     callout: { en: "shelf variance detected", ar: "تم اكتشاف فرق على الرف" },
   },
   footer: {

@@ -25,6 +25,25 @@ describe("sound synthesizer engine", () => {
     expect(sound.isEnabled()).toBe(false);
   });
 
+  it("keeps audio controls usable when browser storage is denied", () => {
+    const getItem = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("storage denied");
+    });
+    const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("storage denied");
+    });
+    try {
+      expect(() => sound.setEnabled(true)).not.toThrow();
+      expect(sound.isEnabled()).toBe(true);
+      expect(() => sound.toggle()).not.toThrow();
+      expect(sound.isEnabled()).toBe(false);
+    } finally {
+      getItem.mockRestore();
+      setItem.mockRestore();
+      sound.setEnabled(false);
+    }
+  });
+
   it("executes audio trigger methods without throwing exceptions", () => {
     sound.setEnabled(false); // Muted
     expect(() => sound.playClick()).not.toThrow();

@@ -22,7 +22,7 @@ import { presentationCopy } from "@/lib/data";
 import { downloadExecutiveReportJson } from "@/lib/export";
 import { t, text } from "@/lib/i18n";
 import { shouldIgnorePresentationShortcut } from "@/lib/keyboard";
-import { DURATION, transition } from "@/lib/motion";
+import { DURATION, scrollBehaviorForMotion, transition } from "@/lib/motion";
 import { sound } from "@/lib/sound";
 import {
   SECTIONS,
@@ -269,8 +269,8 @@ export function Presentation() {
     };
     scrollMetricsRef.current = metrics;
     const targetTop = scrollTopForSection(index, metrics.scrollHeight, metrics.clientHeight);
-    element.scrollTo({ top: targetTop, behavior: "smooth" });
-  }, []);
+    element.scrollTo({ top: targetTop, behavior: scrollBehaviorForMotion(reduced) });
+  }, [reduced]);
 
   useEffect(() => {
     toggleLanguageRef.current = toggleLanguage;
@@ -568,6 +568,7 @@ export function Presentation() {
             style={{
               scrollbarWidth: "none",
               overscrollBehaviorY: "contain",
+              scrollSnapType: reduced ? "y proximity" : "y mandatory",
             }}
           >
             <ScrollBridge onReady={onScrollReady} />

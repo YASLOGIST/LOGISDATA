@@ -29,11 +29,18 @@ export function LiveTelemetryFeed({ open, onClose, language }: LiveTelemetryFeed
   const [filterSeverity, setFilterSeverity] = useState<TelemetryFilter>("all");
 
   useEffect(() => {
-    // The drawer remains mounted so filter state survives closing, but a
-    // hidden simulation must not allocate timers or play notification audio.
+    // The drawer remains mounted so filter state survives closing. Do not
+    // allocate timers or play notification audio while it is closed, paused,
+    // or the browser tab is in the background.
     if (!open || isPaused) return;
 
-    const interval = setInterval(() => {
+    let interval: ReturnType<typeof setInterval> | null = null;
+    const stop = () => {
+      if (interval === null) return;
+      clearInterval(interval);
+      interval = null;
+    };
+    const tick = () => {
       const randomIdx = Math.floor(Math.random() * SAMPLE_TELEMETRY_EVENTS.length);
       const base = SAMPLE_TELEMETRY_EVENTS[randomIdx];
       const now = new Date();
@@ -52,9 +59,23 @@ export function LiveTelemetryFeed({ open, onClose, language }: LiveTelemetryFeed
       } else if (newEvent.severity === "optimized") {
         sound.playSuccess();
       }
-    }, 4500);
+    };
+    const start = () => {
+      if (interval === null && document.visibilityState === "visible") {
+        interval = setInterval(tick, 4500);
+      }
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") start();
+      else stop();
+    };
 
-    return () => clearInterval(interval);
+    start();
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, [open, isPaused]);
 
   if (!open) return null;
