@@ -203,6 +203,30 @@ describe("LiveTelemetryFeed", () => {
     expect(timer).not.toHaveBeenCalled();
   });
 
+  it("suspends fixture updates in a background tab and resumes when visible", () => {
+    vi.useFakeTimers();
+    let visibility: DocumentVisibilityState = "visible";
+    Object.defineProperty(document, "visibilityState", {
+      configurable: true,
+      get: () => visibility,
+    });
+    render(<LiveTelemetryFeed open onClose={() => {}} language="en" />);
+    const log = screen.getByRole("log");
+
+    act(() => vi.advanceTimersByTime(4_500));
+    expect(log.children).toHaveLength(7);
+
+    visibility = "hidden";
+    document.dispatchEvent(new Event("visibilitychange"));
+    act(() => vi.advanceTimersByTime(9_000));
+    expect(log.children).toHaveLength(7);
+
+    visibility = "visible";
+    document.dispatchEvent(new Event("visibilitychange"));
+    act(() => vi.advanceTimersByTime(4_500));
+    expect(log.children).toHaveLength(8);
+  });
+
   it.each([
     [0, "playAlert"],
     [0.7, "playSuccess"],
