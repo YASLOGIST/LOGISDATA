@@ -86,3 +86,63 @@ describe("preference store", () => {
     setItem.mockRestore();
   });
 });
+
+describe("device refresh path", () => {
+  it("keeps snapshot identity on an unchanged resize and updates on a tier change", async () => {
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+      getExtension: () => ({ loseContext: vi.fn() }),
+    } as unknown as RenderingContext);
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1920 });
+    Object.defineProperty(window.navigator, "hardwareConcurrency", { configurable: true, value: 8 });
+    Object.defineProperty(window.navigator, "deviceMemory", { configurable: true, value: 8 });
+    vi.spyOn(window, "matchMedia").mockImplementation(() => ({
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }) as unknown as MediaQueryList);
+    vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
+      queueMicrotask(() => cb(0));
+      return 1;
+    });
+
+    const listener = vi.fn();
+    const unsubscribe = subscribe(listener);
+    try {
+      const before = getSnapshot();
+      expect(before.device.tier).toBe("high");
+
+      // A resize that leaves the classification unchanged must not notify
+      // subscribers or replace the snapshot object.
+      window.dispatchEvent(new Event("resize"));
+      await Promise.resolve();
+      expect(listener).not.toHaveBeenCalled();
+      expect(getSnapshot()).toBe(before);
+
+      // A genuine tier change is propagated exactly once.
+      Object.defineProperty(window, "innerWidth", { configurable: true, value: 420 });
+      window.dispatchEvent(new Event("resize"));
+      await Promise.resolve();
+      expect(listener).toHaveBeenCalledOnce();
+      expect(getSnapshot()).not.toBe(before);
+      expect(getSnapshot().device.tier).toBe("medium");
+    } finally {
+      unsubscribe();
+    }
+  });
+
+  it("does not spend another WebGL probe when cross-tab sync re-initialises", () => {
+    const getContext = vi.spyOn(HTMLCanvasElement.prototype, "getContext");
+    const listener = vi.fn();
+    const unsubscribe = subscribe(listener);
+    try {
+      // First initialisation probed the capability (three getContext calls).
+      getContext.mockClear();
+
+      window.dispatchEvent(new StorageEvent("storage", { key: LANGUAGE_KEY, newValue: "ar" }));
+      expect(getContext).not.toHaveBeenCalled();
+      expect(listener).toHaveBeenCalledOnce();
+    } finally {
+      unsubscribe();
+    }
+  });
+});

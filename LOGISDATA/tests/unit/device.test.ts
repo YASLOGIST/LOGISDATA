@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { classifyDevice, detectWebGL, prefersReducedMotion, probeDevice, STATIC_PROFILE } from "@/lib/device";
+import {
+  classifyDevice,
+  detectWebGL,
+  deviceProfilesEqual,
+  prefersReducedMotion,
+  probeDevice,
+  STATIC_PROFILE,
+} from "@/lib/device";
 
 const base = {
   webgl: true,
@@ -80,6 +87,29 @@ describe("detectWebGL", () => {
       throw new Error("blocked");
     });
     expect(detectWebGL()).toBe(false);
+  });
+});
+
+describe("deviceProfilesEqual", () => {
+  it("matches identical profiles and rejects any observable difference", () => {
+    const profile = classifyDevice(base);
+    expect(deviceProfilesEqual(profile, { ...profile })).toBe(true);
+    expect(deviceProfilesEqual(profile, { ...profile, tier: "medium" })).toBe(false);
+    expect(deviceProfilesEqual(profile, { ...profile, dpr: [1, 1] })).toBe(false);
+    expect(deviceProfilesEqual(profile, { ...profile, effects: !profile.effects })).toBe(false);
+    expect(deviceProfilesEqual(profile, { ...profile, particleBudget: 1 })).toBe(false);
+    expect(deviceProfilesEqual(profile, { ...profile, antialias: !profile.antialias })).toBe(false);
+    expect(deviceProfilesEqual(profile, { ...profile, reducedMotion: true })).toBe(false);
+  });
+
+  it("treats separately produced probes of the same environment as equal", () => {
+    expect(deviceProfilesEqual(classifyDevice(base), classifyDevice(base))).toBe(true);
+    expect(
+      deviceProfilesEqual(
+        classifyDevice(base),
+        classifyDevice({ ...base, viewportWidth: 420 }),
+      ),
+    ).toBe(false);
   });
 });
 

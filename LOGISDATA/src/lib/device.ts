@@ -103,6 +103,24 @@ export function classifyDevice(input: {
   };
 }
 
+/**
+ * True when two profiles would drive identical rendering behaviour.
+ * Resize/orientation storms re-classify constantly; callers use this to
+ * keep the previous object (and its identity) when nothing observable
+ * changed, so `useSyncExternalStore` consumers do not re-render.
+ */
+export function deviceProfilesEqual(a: DeviceProfile, b: DeviceProfile): boolean {
+  return (
+    a.tier === b.tier &&
+    a.dpr[0] === b.dpr[0] &&
+    a.dpr[1] === b.dpr[1] &&
+    a.effects === b.effects &&
+    a.particleBudget === b.particleBudget &&
+    a.antialias === b.antialias &&
+    a.reducedMotion === b.reducedMotion
+  );
+}
+
 /** Browser-side convenience wrapper around {@link classifyDevice}. */
 export function probeDevice(webglOverride?: boolean): DeviceProfile {
   if (typeof window === "undefined") return STATIC_PROFILE;
