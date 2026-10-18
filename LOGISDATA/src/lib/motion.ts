@@ -39,6 +39,11 @@ export interface MotionOptions {
   delay?: number;
 }
 
+/** Native scroll behaviour aligned with the user's motion preference. */
+export function scrollBehaviorForMotion(reduced: boolean): ScrollBehavior {
+  return reduced ? "auto" : "smooth";
+}
+
 /** Builds a framer-motion transition that automatically honours reduced motion. */
 export function transition(
   duration: keyof typeof DURATION | number = "base",
