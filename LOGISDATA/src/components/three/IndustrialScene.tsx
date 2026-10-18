@@ -5,6 +5,7 @@ import { useScroll } from "@react-three/drei";
 import { memo, Suspense, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { SECTION_COUNT, pagePositionFromOffset } from "@/lib/sections";
+import { getCinematicFrame, type CinematicFrame } from "@/lib/cinematic";
 import type { DeviceProfile } from "@/lib/device";
 import type { Language, ThemeMode } from "@/lib/types";
 import { AuditScanner } from "./AuditScanner";
@@ -53,28 +54,57 @@ const DEPTH_STEP = 2.2;
 const clamp01 = (value: number) => THREE.MathUtils.clamp(value, 0, 1);
 const smoothStep = (value: number) => value * value * (3 - 2 * value);
 
-/** Photo-real warehouse plate behind the scroll-synchronized 3D audit models. */
-function WarehouseBackdrop() {
-  const texture = useLoader(THREE.TextureLoader, "/warehouse-interior.jpg");
+/**
+ * Photo-real warehouse plate behind the 3D audit models. Its crop is a
+ * reversible five-shot timeline driven by ScrollControls: no autoplay, no
+ * idle loop, and no extra video decoder competing with the WebGL scene.
+ */
+function WarehouseBackdrop({ reducedMotion }: { reducedMotion: boolean }) {
+  const sourceTexture = useLoader(THREE.TextureLoader, "/warehouse-interior.jpg");
+  const texture = useMemo(() => sourceTexture.clone(), [sourceTexture]);
+  const scroll = useScroll();
+  const lastFrame = useRef<CinematicFrame | null>(null);
 
-  // Configure the cached GPU texture once; this is an owned renderer resource,
-  // not React state. The loader cache must retain the same texture reference.
+  // Own a cloned texture so its animated UV transform never mutates drei's
+  // shared loader cache (or another scene using the same photograph).
   /* eslint-disable react-hooks/immutability */
   useEffect(() => {
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.anisotropy = 4;
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
     texture.needsUpdate = true;
+    return () => texture.dispose();
   }, [texture]);
   /* eslint-enable react-hooks/immutability */
+
+  useFrame(() => {
+    const frame = getCinematicFrame(scroll.offset, reducedMotion);
+    const previous = lastFrame.current;
+    if (
+      previous &&
+      Math.abs(previous.zoom - frame.zoom) < 0.0001 &&
+      Math.abs(previous.x - frame.x) < 0.0001 &&
+      Math.abs(previous.y - frame.y) < 0.0001
+    ) return;
+
+    // Repeat controls the crop zoom; offset moves that crop over the photo.
+    // Since both are functions of the current scroll offset, the view freezes
+    // naturally at rest and retraces precisely when the user scrolls upward.
+    const repeat = 1 / frame.zoom;
+    texture.repeat.set(repeat, repeat);
+    texture.offset.set(frame.x * (1 - repeat), frame.y * (1 - repeat));
+    lastFrame.current = frame;
+  });
 
   return (
     <mesh position={[0, 0, -30]} frustumCulled={false} renderOrder={-10}>
       <planeGeometry args={[56, 32]} />
       <meshBasicMaterial
         map={texture}
-        color="#a9bac2"
+        color="#c1cfd5"
         transparent
-        opacity={0.46}
+        opacity={0.52}
         depthWrite={false}
         fog={false}
         toneMapped={false}
@@ -185,7 +215,7 @@ function SceneRig({ language, theme, device }: IndustrialSceneProps) {
       <directionalLight position={[4, 7, 5]} intensity={theme === "dark" ? 1.35 : 1.05} />
       {device.tier !== "low" && (
         <Suspense fallback={null}>
-          <WarehouseBackdrop />
+          <WarehouseBackdrop reducedMotion={device.reducedMotion} />
         </Suspense>
       )}
       {device.effects && <DataStreamField device={device} theme={theme} />}
